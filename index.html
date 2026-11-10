@@ -59,6 +59,7 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;
 .meter{height:5px;background:var(--sunk);border-radius:3px;overflow:hidden;display:flex}
 .meter i{display:block;height:100%}
 .set .s{font-size:11px;color:var(--muted)}
+.set .s.full{color:var(--fg)} .set .s.full b{font-family:var(--f-mono)}
 .lv-goal{color:var(--good)} .lv-pass{color:var(--warn)} .lv-bad{color:var(--bad)}
 
 /* quiz */
@@ -341,8 +342,12 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
   function setStats(id,sec){
     const n=SEC[sec].n; let done=0, ok=0;
     let lastTs=0;
-    for(let i=1;i<=n;i++){ const r=rec[key(id,sec,i)]; if(r&&r.h&&r.h.length){ done++; if(r.last) ok++; const t=r.h[r.h.length-1][0]; if(t>lastTs) lastTs=t; } }
-    return {n,done,ok,lastTs};
+    const runs={}; // sid -> {q:{n:ok}, ts}
+    for(let i=1;i<=n;i++){ const r=rec[key(id,sec,i)]; if(r&&r.h&&r.h.length){ done++; if(r.last) ok++; const t=r.h[r.h.length-1][0]; if(t>lastTs) lastTs=t;
+      r.h.forEach(h=>{ if(!h[3]) return; const g=runs[h[3]]||(runs[h[3]]={q:{},ts:0}); g.q[i]=h[2]; if(h[0]>g.ts) g.ts=h[0]; }); } }
+    let full=null; // 最後に全問解き切ったテスト
+    Object.values(runs).forEach(g=>{ const k=Object.keys(g.q); if(k.length===n && (!full||g.ts>full.ts)) full={ts:g.ts, ok:k.filter(x=>g.q[x]).length, n}; });
+    return {n,done,ok,lastTs,full};
   }
   function renderHome(){
     const box=$("sessions"); box.replaceChildren();
@@ -355,12 +360,13 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
         const avail = AVAILABLE[s.id] && AVAILABLE[s.id][sec];
         const b=el("button","set"); b.type="button"; b.disabled=!avail;
         const t=el("div","t"); t.append(el("span",null,SEC[sec].name));
-        const rate = st.done? st.ok/st.done : null;
+        const F=st.full; const rate = F? F.ok/F.n : null;
         const rs=el("span", rate==null?"muted":lv(rate), rate==null?"—":pc(rate)); t.append(rs);
-        const m=el("div","meter"); const g=el("i"); g.style.width=(st.ok/st.n*100)+"%"; g.style.background="var(--good)";
-        const r_=el("i"); r_.style.width=((st.done-st.ok)/st.n*100)+"%"; r_.style.background="var(--bad)"; m.append(g,r_);
-        const when = st.lastTs ? (()=>{ const d=new Date(st.lastTs), now=new Date(); const days=Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000); const md=`${d.getMonth()+1}/${d.getDate()}`; return days===0?"今日":days===1?"昨日":days<7?`${days}日前（${md}）`:(d.getFullYear()!==now.getFullYear()?`${d.getFullYear()}/`:"")+md; })() : "";
-        b.append(t,m,el("div","s", avail? `${st.done}/${st.n}問 回答済み`+(when?`・最終 ${when}`:"") : "準備中"));
+        const m=el("div","meter"); if(F){ const g=el("i"); g.style.width=(F.ok/F.n*100)+"%"; g.style.background="var(--good)";
+        const r_=el("i"); r_.style.width=((F.n-F.ok)/F.n*100)+"%"; r_.style.background="var(--bad)"; m.append(g,r_); }
+        const fmtDay = ts=>{ const d=new Date(ts), now=new Date(); const days=Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000); const md=`${d.getMonth()+1}/${d.getDate()}`; return days===0?"今日":days===1?"昨日":days<7?`${days}日前（${md}）`:(d.getFullYear()!==now.getFullYear()?`${d.getFullYear()}/`:"")+md; };
+        const fwhen = F ? fmtDay(F.ts) : "";
+        b.append(t,m,el("div","s", !avail? "準備中" : F? `通し ${F.ok}/${F.n}問正解・${fwhen}` : (st.done? `通し未実施（${st.done}/${st.n}問 回答済み）` : "未実施")));
         if(avail) b.addEventListener("click",()=>startSet(s.id,sec));
         else b.style.opacity=.5;
         row.append(b);
@@ -506,18 +512,21 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
     const rate=list=>list.length? list.filter(r=>r.last).length/list.length : null;
     const recent=[]; all.forEach(r=>r.h.forEach(h=>recent.push(h))); recent.sort((a,b)=>b[0]-a[0]);
     const r50=recent.slice(0,50);
-    [["午前I 正答率",rate(by("am1")),`${by("am1").length}問`],["午前II 正答率",rate(by("am2")),`${by("am2").length}問`],["直近50回答",r50.length? r50.filter(h=>h[2]).length/r50.length:null,`${recent.length}回答`]].forEach(([k,v,sub])=>{
+    const fullAvg=sec=>{ let ok=0,n=0,c=0; SESSIONS.forEach(s=>{ const F=setStats(s.id,sec).full; if(F){ ok+=F.ok; n+=F.n; c++; } }); return [n? ok/n : null, `${c}回分`]; };
+    const f1=fullAvg("am1"), f2=fullAvg("am2");
+    [["午前I 通し平均",f1[0],f1[1]],["午前II 通し平均",f2[0],f2[1]],["直近50回答",r50.length? r50.filter(h=>h[2]).length/r50.length:null,`${recent.length}回答`]].forEach(([k,v,sub])=>{
       const t=el("div","tile"); t.append(el("span","k",k)); const vv=el("span","v "+(v==null?"":lv(v)), v==null?"—":pc(v)); vv.append(el("small",null," "+sub)); t.append(vv); tiles.append(t);
     });
     const tb=$("stTable"); tb.replaceChildren();
-    const hr=el("tr"); ["回","午前I","","午前II",""].forEach(h=>hr.append(el("th",null,h))); const th=el("thead"); th.append(hr); tb.append(th);
+    const hr=el("tr"); ["回","午前I 直近の通し","","午前II 直近の通し",""].forEach(h=>hr.append(el("th",null,h))); const th=el("thead"); th.append(hr); tb.append(th);
     const body=el("tbody");
     SESSIONS.forEach(s=>{
       const tr=el("tr"); tr.append(el("td",null,s.label));
       ["am1","am2"].forEach(sec=>{
         const st=setStats(s.id,sec);
-        tr.append(el("td","n",`${st.done}/${st.n}`));
-        const td=el("td"); if(st.done) td.append(el("span","pill "+lv(st.ok/st.done),pc(st.ok/st.done))); else td.append(el("span","muted","—")); tr.append(td);
+        const F=st.full;
+        tr.append(el("td","n",F?`${F.ok}/${F.n}`:"—"));
+        const td=el("td"); if(F){ td.append(el("span","pill "+lv(F.ok/F.n),pc(F.ok/F.n))); const d=new Date(F.ts); td.append(el("span","muted small",` ${d.getMonth()+1}/${d.getDate()}`)); } else td.append(el("span","muted","—")); tr.append(td);
       });
       body.append(tr);
     });
