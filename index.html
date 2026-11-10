@@ -585,7 +585,9 @@ footer{border-top:1px solid var(--line);padding-top:16px}
     $("homeSummary").textContent = `回答済み ${ans} / ${tot} 問（${pc(tot?ans/tot:0)}）`;
     $("homeBar").style.width=(tot?ans/tot*100:0)+"%";
     const wrongs=Object.values(rec).filter(r=>r.h&&r.h.length&&!r.last).length;
-    $("mWrongSub").textContent = wrongs? `${wrongs}問（最大30問ずつ）` : "いまは対象の問題がありません"; $("mWrong").disabled = !wrongs;
+    const LR=lastRun();
+    $("mWrongSub").textContent = !LR ? "まだ解いた記録がありません" : LR.items.length ? `${LR.name}・${LR.items.length}問` : `${LR.name}は全問正解`;
+    $("mWrong").disabled = !(LR&&LR.items.length);
   }
 
   // ---------- quiz ----------
@@ -864,7 +866,20 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   $("qImg").addEventListener("click",()=>$("qImg").classList.toggle("zoom"));
   $("qNext").addEventListener("click",next);
   $("qPrev").addEventListener("click",prev);
-  $("mWrong").addEventListener("click",()=>openQuiz("前回間違えた問題", shuffle(Object.values(rec).filter(r=>r.h&&r.h.length&&!r.last&&AVAILABLE[r.s]&&AVAILABLE[r.s][r.sec]).map(r=>({s:r.s,sec:r.sec,n:r.n}))).slice(0,30)));
+  // 直前に解いたまとまり（同じ出題セッション）で間違えた問題
+  function lastRun(){
+    let latest=null;
+    Object.values(rec).forEach(r=>(r.h||[]).forEach(h=>{ if(h[3] && (!latest || h[0]>latest[0])) latest=h; }));
+    if(!latest) return null;
+    const sid=latest[3]; const wrong=[]; let s0=null, same=true;
+    Object.values(rec).forEach(r=>{ const hs=(r.h||[]).filter(h=>h[3]===sid); if(!hs.length) return;
+      if(!s0) s0=r; else if(r.s!==s0.s||r.sec!==s0.sec) same=false;
+      if(!hs[hs.length-1][2]) wrong.push({s:r.s,sec:r.sec,n:r.n}); });
+    wrong.sort((a,b)=>(a.s+a.sec).localeCompare(b.s+b.sec)||a.n-b.n);
+    const name = (latest[4]||"").replace(/( の間違い)+$/,"") + ((latest[4]||"").endsWith("の間違い")?"（解き直し）":"") || (same&&s0&&SID[s0.s] ? `${SID[s0.s].label} ${SEC[s0.sec].name}` : "前回");
+    return {name, items:wrong};
+  }
+  $("mWrong").addEventListener("click",()=>{ const LR=lastRun(); if(LR&&LR.items.length) openQuiz(`${LR.name.replace(/（解き直し）$/,"")} の間違い`, LR.items); });
   $("mRand1").addEventListener("click",()=>openQuiz("午前I ランダム30問", shuffle(availList("am1")).slice(0,30)));
   $("mRand2").addEventListener("click",()=>openQuiz("午前II ランダム30問", shuffle(availList("am2")).slice(0,30)));
   $("mDup").addEventListener("click",()=>{ const pick=shuffle(DUP.slice()).slice(0,10).map(g=>pk(g.m[0])); openQuiz("頻出問題", pick); });
