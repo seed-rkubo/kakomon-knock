@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>SC過去問道場</title>
+<title>SC過去問ノック</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@700;900&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -351,7 +351,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
     <div class="brand">
       <div class="brand-mark" aria-hidden="true">SC</div>
       <div>
-        <h1>SC過去問道場</h1>
+        <h1>SC過去問ノック</h1>
         <div class="brand-sub">情報処理安全確保支援士 午前I・II ／ 19回分 1,045問</div>
       </div>
     </div>
@@ -474,7 +474,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   </section>
 
   <footer>
-    問題は IPA が公開している過去問題（問題冊子・解答例）を使用しています。各問題の出典は問題の下に記載しています。解説はこの道場用に独自に作成したもので、IPA の公式解説ではありません。
+    問題は IPA が公開している過去問題（問題冊子・解答例）を使用しています。各問題の出典は問題の下に記載しています。解説はこのサイト用に独自に作成したもので、IPA の公式解説ではありません。
     <a href="https://www.ipa.go.jp/shiken/mondai-kaiotu/index.html" target="_blank" rel="noopener" style="color:var(--accent)">IPA 過去問題</a>
   </footer>
 </div>
@@ -895,7 +895,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   $("bkExport").addEventListener("click",()=>{
     const blob=new Blob([JSON.stringify({app:"sc-dojo",v:1,exported:new Date().toISOString(),rec},null,0)],{type:"application/json"});
     const a=document.createElement("a"); const d=new Date();
-    a.href=URL.createObjectURL(blob); a.download=`sc-dojo-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}.json`;
+    a.href=URL.createObjectURL(blob); a.download=`kakomon-knock-sc-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}.json`;
     document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   });
   $("bkImport").addEventListener("change",async e=>{
@@ -953,7 +953,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   function summaryText(p,url){
     const logs=(p.r||[]).slice(0,10).map(r=>`${dstr(r[0])} ${runName(r).replace(/年度 /,"年度")} ${r[4]}問 ${pc(r[4]?r[5]/r[4]:0)}`);
     const runs=p.f.map(([si,ci,ok,n])=>`${shortLabel(SESSIONS[si].id)} ${SEC[["am1","am2"][ci]].name} ${pc(ok/n)}`);
-    return [`【SC過去問道場】${p.nm?p.nm+"さんの":""}進み具合（${dstr(p.t)}時点）`,
+    return [`【SC過去問ノック】${p.nm?p.nm+"さんの":""}進み具合（${dstr(p.t)}時点）`,
       `回答済み ${p.d}/${p.tot}問（${pc(p.tot?p.d/p.tot:0)}）・学習 ${p.dy}日・連続 ${p.st}日`,
       ...(logs.length? ["▼解いた記録", ...logs, ...(p.r.length>10?[`ほか${p.r.length-10}件はリンク先で`]:[])] : []),
       runs.length? `通しテスト ${runs.length}回：`+runs.slice(0,6).join("、")+(runs.length>6?` ほか${runs.length-6}回`:"") : "通しテストはまだ",
@@ -973,7 +973,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   async function copy(t,msg){ try{ await navigator.clipboard.writeText(t); setStatus(msg); }catch(e){ $("shText").select(); document.execCommand("copy"); setStatus(msg); } setTimeout(()=>{ if($("status").textContent===msg) setStatus(""); },3000); }
   $("shCopy").addEventListener("click",()=>copy($("shText").value,"文章とリンクをコピーしました。"));
   $("shCopyUrl").addEventListener("click",()=>copy(shareUrl,"リンクをコピーしました。"));
-  $("shNative").addEventListener("click",()=>{ navigator.share({title:"SC過去問道場の進み具合", text:$("shText").value}).catch(()=>{}); });
+  $("shNative").addEventListener("click",()=>{ navigator.share({title:"SC過去問ノックの進み具合", text:$("shText").value}).catch(()=>{}); });
   function showShared(){
     const m=location.hash.match(/^#p=([A-Za-z0-9_-]+)/); if(!m) return false;
     let p; try{ p=JSON.parse(b64d(m[1])); if(!p||p.v!==1) throw 0; }catch(e){ return false; }
