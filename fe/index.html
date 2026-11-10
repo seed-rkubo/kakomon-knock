@@ -357,7 +357,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
       <div class="brand-mark" aria-hidden="true">FE</div>
       <div>
         <h1>FE過去問ノック</h1>
-        <div class="brand-sub">基本情報技術者試験 科目A・科目B ／ 公開問題＋旧午前 904問</div>
+        <div class="brand-sub">基本情報技術者試験 科目A・科目B ／ 公開問題・免除試験・旧午前 1,744問</div>
       </div>
     </div>
     <div class="tabs" role="tablist">
@@ -374,7 +374,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
       <div class="pbar" aria-hidden="true"><i id="homeBar"></i></div>
       <div class="quick">
         <button class="qbtn primary" id="mWrong" type="button"><b>前回間違えた問題だけ</b><span id="mWrongSub"></span></button>
-        <button class="qbtn" id="mRand1" type="button"><b>科目A ランダム30問</b><span>公開問題と旧午前から出題</span></button>
+        <button class="qbtn" id="mRand1" type="button"><b>科目A ランダム30問</b><span>公開問題・免除試験・旧午前から出題</span></button>
         <button class="qbtn" id="mRand2" type="button"><b>科目B ランダム6問</b><span>アルゴリズム・セキュリティ</span></button>
         <button class="qbtn" id="mNew" type="button"><b>未回答から10問</b><span>まだ解いていない問題</span></button>
         <button class="qbtn" id="mDup" type="button" hidden><b>頻出問題から10問</b><span>複数の年度で出た問題</span></button>
@@ -479,24 +479,25 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   </section>
 
   <footer>
-    問題は IPA が公開している基本情報技術者試験の過去問題・公開問題（問題冊子・解答例）を使用しています。各問題の出典は問題の下に記載しています。解説はこのサイト用に独自に作成したもので、IPA の公式解説ではありません。
+    問題は IPA が公開している基本情報技術者試験の過去問題・公開問題・科目A免除試験の問題（問題冊子・解答例）を使用しています。各問題の出典は問題の下に記載しています。解説はこのサイト用に独自に作成したもので、IPA の公式解説ではありません。
     <a href="https://www.ipa.go.jp/shiken/mondai-kaiotu/index.html" target="_blank" rel="noopener" style="color:var(--accent)">IPA 過去問題</a>
   </footer>
 </div>
 
-<script>window.__AVAILABLE__={"2015h27a": {"am": true}, "2015h27h": {"am": true}, "2016h28a": {"am": true}, "2016h28h": {"am": true}, "2017h29a": {"am": true}, "2017h29h": {"am": true}, "2018h30a": {"am": true}, "2018h30h": {"am": true}, "2019h31h": {"am": true}, "2019r01a": {"am": true}, "2023r05": {"a": true, "b": true}, "2024r06": {"a": true, "b": true}, "2025r07": {"a": true, "b": true}, "2026r08": {"a": true, "b": true}}</script>
+<script>window.__AVAILABLE__={"2015h27a": {"am": true}, "2015h27h": {"am": true}, "2016h28a": {"am": true}, "2016h28h": {"am": true}, "2017h29a": {"am": true}, "2017h29h": {"am": true}, "2018h30a": {"am": true}, "2018h30h": {"am": true}, "2019h31h": {"am": true}, "2019r01a": {"am": true}, "2023r05": {"a": true, "b": true}, "2024r06": {"a": true, "b": true}, "2025r07": {"a": true, "b": true}, "2026r08": {"a": true, "b": true}, "m20230611": {"mj": true}, "m20230723": {"mj": true}, "m20231210": {"mj": true}, "m20240128": {"mj": true}, "m20240609": {"mj": true}, "m20240728": {"mj": true}, "m20241208": {"mj": true}, "m20250126": {"mj": true}, "m20250608": {"mj": true}, "m20250727": {"mj": true}, "m20251214": {"mj": true}, "m20260125": {"mj": true}, "m20260614": {"mj": true}, "m20260726": {"mj": true}}</script>
 <script>
 (function(){
   const SESSIONS = [
     ["2026r08","令和8年度 公開問題",["a","b"]],["2025r07","令和7年度 公開問題",["a","b"]],["2024r06","令和6年度 公開問題",["a","b"]],["2023r05","令和5年度 公開問題",["a","b"]],
+    ["m20260726","2026年7月26日",["mj"]],["m20260614","2026年6月14日",["mj"]],["m20260125","2026年1月25日",["mj"]],["m20251214","2025年12月14日",["mj"]],["m20250727","2025年7月27日",["mj"]],["m20250608","2025年6月8日",["mj"]],["m20250126","2025年1月26日",["mj"]],["m20241208","2024年12月8日",["mj"]],["m20240728","2024年7月28日",["mj"]],["m20240609","2024年6月9日",["mj"]],["m20240128","2024年1月28日",["mj"]],["m20231210","2023年12月10日",["mj"]],["m20230723","2023年7月23日",["mj"]],["m20230611","2023年6月11日",["mj"]],
     ["2019r01a","令和元年度 秋期",["am"]],["2019h31h","平成31年度 春期",["am"]],["2018h30a","平成30年度 秋期",["am"]],["2018h30h","平成30年度 春期",["am"]],
     ["2017h29a","平成29年度 秋期",["am"]],["2017h29h","平成29年度 春期",["am"]],["2016h28a","平成28年度 秋期",["am"]],["2016h28h","平成28年度 春期",["am"]],
     ["2015h27a","平成27年度 秋期",["am"]],["2015h27h","平成27年度 春期",["am"]],
   ].map(([id,label,secs])=>({id,label,secs,exam:"基本情報技術者試験"}));
   const SID = Object.fromEntries(SESSIONS.map(s=>[s.id,s]));
-  const SEC = {am:{name:"午前",roman:"午前",n:80}, a:{name:"科目A",roman:"科目A",n:20}, b:{name:"科目B",roman:"科目B",n:6}};
-  const SK = ["am","a","b"];
-  const GROUPS = [{title:"新形式 公開問題",note:"2023年以降のCBT試験から IPA が公開した問題",secs:["a","b"]},{title:"旧試験 午前",note:"科目Aと同じ範囲の4択問題",secs:["am"]}];
+  const SEC = {am:{name:"午前",roman:"午前",n:80}, a:{name:"科目A",roman:"科目A",n:20}, b:{name:"科目B",roman:"科目B",n:6}, mj:{name:"免除試験",roman:"科目A免除試験（修了試験）",n:60}};
+  const SK = ["am","a","b","mj"];
+  const GROUPS = [{title:"新形式 公開問題",note:"2023年以降のCBT試験から IPA が公開した問題",secs:["a","b"]},{title:"科目A免除試験",note:"IPA が公開している科目A免除試験（修了試験）の問題。科目Aと同じ形式の60問",secs:["mj"]},{title:"旧試験 午前",note:"科目Aと同じ範囲の4択問題",secs:["am"]}];
   
   const AVAILABLE = window.__AVAILABLE__ || {};   // {"2025r07a":{"am1":true,...}} written at publish time
 
@@ -890,7 +891,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
     return {name, items:wrong};
   }
   $("mWrong").addEventListener("click",()=>{ const LR=lastRun(); if(LR&&LR.items.length) openQuiz(`${LR.name.replace(/（解き直し）$/,"")} の間違い`, LR.items); });
-  $("mRand1").addEventListener("click",()=>openQuiz("科目A形式 ランダム30問", shuffle(availList(["am","a"])).slice(0,30)));
+  $("mRand1").addEventListener("click",()=>openQuiz("科目A形式 ランダム30問", shuffle(availList(["am","a","mj"])).slice(0,30)));
   $("mRand2").addEventListener("click",()=>openQuiz("科目B ランダム6問", shuffle(availList("b")).slice(0,6)));
   $("mDup").addEventListener("click",()=>{ const pick=shuffle(DUP.slice()).slice(0,10).map(g=>pk(g.m[0])); openQuiz("頻出問題", pick); });
   $("mNew").addEventListener("click",()=>openQuiz("未回答から", shuffle(availList().filter(x=>!groupDone(key(x.s,x.sec,x.n)))).slice(0,10)));
