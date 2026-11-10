@@ -160,6 +160,17 @@ td.n{font-family:var(--f-mono);text-align:right}
 .dupscroll{max-height:420px;overflow:auto}
 .duptable td{vertical-align:top}
 .empty{padding:22px 12px;text-align:center;color:var(--muted);background:var(--sunk);border-radius:8px;font-size:14px}
+.shcard{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg);display:flex;flex-direction:column;gap:12px}
+.shhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.shname{font-family:var(--f-display);font-weight:800;font-size:18px}
+.shtiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.shtiles .tile{padding:8px 10px}
+.shtiles .tile .v{font-size:20px}
+.shbar{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.shbar i{display:block;height:100%;background:var(--accent)}
+.shruns{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.shrun{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;display:flex;justify-content:space-between;gap:6px;background:var(--surface)}
+@media (max-width:560px){.shtiles{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 footer{font-size:12px;color:var(--muted);line-height:1.7}
 @media (max-width:560px){.srow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.srow .lbl{grid-column:1/-1}.tiles{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -256,6 +267,30 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
     </div>
     <div id="logCal" class="logcal" aria-label="直近5週間の解答数"></div>
     <div id="logList"></div>
+  </section>
+
+  <section class="panel" id="vShare" hidden>
+    <div class="muted small" id="shWho"></div>
+    <div id="shCard"></div>
+    <div class="resactions"><button class="btn" id="shMine">自分も解いてみる</button></div>
+  </section>
+
+  <section class="panel" id="sharePanel">
+    <h2>進み具合を共有</h2>
+    <p class="muted small" style="margin:0">回答数・学習日数・通しテストの成績をまとめたリンクを作ります。リンクを開いた人は、あなたの進み具合を見られます（問題ごとの解答内容は含みません）。</p>
+    <label class="small" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">表示名 <input id="shName" maxlength="20" placeholder="例：くぼ" style="font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;flex:1;max-width:240px"></label>
+    <div class="resactions">
+      <button class="btn" id="shMake">共有リンクを作る</button>
+    </div>
+    <div id="shOut" hidden style="display:flex;flex-direction:column;gap:10px">
+      <div id="shPreview"></div>
+      <textarea id="shText" readonly rows="6" style="font:inherit;font-size:13px;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);resize:vertical"></textarea>
+      <div class="resactions">
+        <button class="btn" id="shCopy">文章とリンクをコピー</button>
+        <button class="btn ghost" id="shCopyUrl">リンクだけコピー</button>
+        <button class="btn ghost" id="shNative" hidden>LINEなどで送る</button>
+      </div>
+    </div>
   </section>
 
   <section class="panel" id="backup">
@@ -694,7 +729,73 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
     }catch(err){ setStatus("読み込めませんでした。書き出したファイルを選んでください。"); }
     e.target.value="";
   });
+  // ---------- share ----------
+  const DAY=864e5;
+  const b64e=str=>{ const u=new TextEncoder().encode(str); let bin=""; u.forEach(c=>bin+=String.fromCharCode(c)); return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); };
+  const b64d=str=>{ const bin=atob(str.replace(/-/g,"+").replace(/_/g,"/")); return new TextDecoder().decode(Uint8Array.from(bin,c=>c.charCodeAt(0))); };
+  function buildSummary(name){
+    const ev=allEvents(); const today=new Date(); today.setHours(0,0,0,0); const t0=today.getTime();
+    const days=new Set(ev.map(e=>dkey(e.ts)));
+    let streak=0; let d=new Date(today); if(!days.has(dkey(d.getTime()))) d.setDate(d.getDate()-1);
+    while(days.has(dkey(d.getTime()))){ streak++; d.setDate(d.getDate()-1); }
+    const w=ev.filter(e=>e.ts>=t0-6*DAY); let done=0, tot=0; const f=[];
+    SESSIONS.forEach((s,si)=>["am1","am2"].forEach((sec,ci)=>{ if(!(AVAILABLE[s.id]&&AVAILABLE[s.id][sec])) return; const st=setStats(s.id,sec); done+=st.done; tot+=st.n; if(st.full) f.push([si,ci,st.full.ok,st.full.n,Math.floor(st.full.ts/DAY)]); }));
+    return {v:1, nm:(name||"").trim().slice(0,20), t:Math.floor(Date.now()/DAY), d:done, tot, a:ev.length, dy:days.size, st:streak, w:[w.length, w.filter(e=>e.ok).length], f};
+  }
+  const dstr=dn=>{ const x=new Date(dn*DAY); return `${x.getMonth()+1}/${x.getDate()}`; };
+  function summaryCard(p){
+    const c=el("div","shcard");
+    const h=el("div","shhead"); h.append(el("span","shname",(p.nm||"だれか")+" さんの進み具合"), el("span","muted small",`${dstr(p.t)} 時点`)); c.append(h);
+    const pr=p.tot? p.d/p.tot : 0;
+    const bar=el("div"); bar.append(el("div","small",`回答済み ${p.d} / ${p.tot} 問（${pc(pr)}）`)); const sb=el("div","shbar"); const i=el("i"); i.style.width=(pr*100)+"%"; sb.append(i); bar.append(sb); c.append(bar);
+    const tiles=el("div","shtiles");
+    const wr=p.w[0]? p.w[1]/p.w[0] : null;
+    [["学習した日",`${p.dy}`,"日"],["連続",`${p.st}`,"日"],["直近7日",`${p.w[0]}`,"問"],["直近7日 正答率", wr==null?"—":pc(wr), "", wr==null?"":lv(wr)]].forEach(([k,v,u,cls])=>{ const t=el("div","tile"); t.append(el("span","k",k)); const vv=el("span","v "+(cls||""),v); if(u) vv.append(el("small",null," "+u)); t.append(vv); tiles.append(t); });
+    c.append(tiles);
+    const fr=el("div"); fr.append(el("div","small",`通しテスト ${p.f.length}回分（${SESSIONS.length*2}セット中）`));
+    if(p.f.length){ const g=el("div","shruns"); p.f.forEach(([si,ci,ok,n,dn])=>{ const s=SESSIONS[si]; if(!s) return; const sec=["am1","am2"][ci]; const r=ok/n; const b=el("div","shrun"); b.append(el("span",null,`${shortLabel(s.id)} ${SEC[sec].name}`)); const v=el("span","mono "+lv(r),pc(r)); v.title=`${ok}/${n}（${dstr(dn)}）`; b.append(v); g.append(b); }); fr.append(g); }
+    else fr.append(el("div","muted small","まだ通しで解いた回はありません。"));
+    c.append(fr);
+    return c;
+  }
+  function summaryText(p,url){
+    const wr=p.w[0]? `正答率 ${pc(p.w[1]/p.w[0])}` : "";
+    const runs=p.f.map(([si,ci,ok,n])=>`${shortLabel(SESSIONS[si].id)} ${SEC[["am1","am2"][ci]].name} ${pc(ok/n)}`);
+    return [`【SC過去問道場】${p.nm?p.nm+"さんの":""}進み具合（${dstr(p.t)}時点）`,
+      `回答済み ${p.d}/${p.tot}問（${pc(p.tot?p.d/p.tot:0)}）・学習 ${p.dy}日・連続 ${p.st}日`,
+      `直近7日 ${p.w[0]}問 ${wr}`.trim(),
+      runs.length? `通しテスト ${runs.length}回：`+runs.slice(0,6).join("、")+(runs.length>6?` ほか${runs.length-6}回`:"") : "通しテストはまだ",
+      url].join("\n");
+  }
+  let shareUrl="";
+  try{ $("shName").value=localStorage.getItem("sc-dojo-name")||""; }catch(e){}
+  $("shMake").addEventListener("click",()=>{
+    const name=$("shName").value; try{ localStorage.setItem("sc-dojo-name",name); }catch(e){}
+    const p=buildSummary(name);
+    shareUrl=location.origin+location.pathname+"#p="+b64e(JSON.stringify(p));
+    $("shPreview").replaceChildren(summaryCard(p));
+    $("shText").value=summaryText(p,shareUrl);
+    $("shNative").hidden=!navigator.share;
+    $("shOut").hidden=false;
+  });
+  async function copy(t,msg){ try{ await navigator.clipboard.writeText(t); setStatus(msg); }catch(e){ $("shText").select(); document.execCommand("copy"); setStatus(msg); } setTimeout(()=>{ if($("status").textContent===msg) setStatus(""); },3000); }
+  $("shCopy").addEventListener("click",()=>copy($("shText").value,"文章とリンクをコピーしました。"));
+  $("shCopyUrl").addEventListener("click",()=>copy(shareUrl,"リンクをコピーしました。"));
+  $("shNative").addEventListener("click",()=>{ navigator.share({title:"SC過去問道場の進み具合", text:$("shText").value}).catch(()=>{}); });
+  function showShared(){
+    const m=location.hash.match(/^#p=([A-Za-z0-9_-]+)/); if(!m) return false;
+    let p; try{ p=JSON.parse(b64d(m[1])); if(!p||p.v!==1) throw 0; }catch(e){ return false; }
+    ["vHome","vQuiz","vStats","vLog","vResult","sharePanel","backup"].forEach(id=>$(id).hidden=true);
+    $("shWho").textContent="共有された進み具合です。";
+    $("shCard").replaceChildren(summaryCard(p)); $("vShare").hidden=false;
+    return true;
+  }
+  $("shMine").addEventListener("click",()=>{ history.replaceState(null,"",location.pathname); $("vShare").hidden=true; $("sharePanel").hidden=false; $("backup").hidden=false; show("home"); });
+  const _show=show;
+  show=function(v){ if(!$("vShare").hidden){ history.replaceState(null,"",location.pathname); $("vShare").hidden=true; $("sharePanel").hidden=false; $("backup").hidden=false; } _show(v); };
+  window.addEventListener("hashchange",showShared);
   renderHome();
+  showShared();
 })();
 </script>
 
