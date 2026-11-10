@@ -50,15 +50,15 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;
 .sessions{display:flex;flex-direction:column}
 .srow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.2fr);gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
 .srow:last-child{border-bottom:0}
-.srow .lbl{font-weight:700;font-size:14px;line-height:1.3}
+.srow .lbl{font-weight:700;font-size:15px;line-height:1.3}
 .srow .lbl small{display:block;font-weight:400;color:var(--muted);font-size:11px}
-.set{display:flex;flex-direction:column;gap:3px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 10px;text-align:left;min-width:0}
+.set{display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 12px;text-align:left;min-width:0}
 .set:hover{border-color:var(--accent)}
-.set .t{display:flex;justify-content:space-between;gap:6px;font-size:13px;font-weight:700}
+.set .t{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:14px;font-weight:700}
 .set .t span:last-child{font-family:var(--f-mono);font-weight:600}
 .meter{height:5px;background:var(--sunk);border-radius:3px;overflow:hidden;display:flex}
 .meter i{display:block;height:100%}
-.set .s{font-size:11px;color:var(--muted)}
+.set .s{font-size:12px;color:var(--muted)}
 .set .s.full{color:var(--fg)} .set .s.full b{font-family:var(--f-mono)}
 .lv-goal{color:var(--good)} .lv-pass{color:var(--warn)} .lv-bad{color:var(--bad)}
 
@@ -163,14 +163,38 @@ td.n{font-family:var(--f-mono);text-align:right}
 .shcard{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg);display:flex;flex-direction:column;gap:12px}
 .shhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 .shname{font-family:var(--f-display);font-weight:800;font-size:18px}
-.shtiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.shtiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .shtiles .tile{padding:8px 10px}
 .shtiles .tile .v{font-size:20px}
 .shbar{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
 .shbar i{display:block;height:100%;background:var(--accent)}
 .shruns{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
 .shrun{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;display:flex;justify-content:space-between;gap:6px;background:var(--surface)}
-@media (max-width:560px){.shtiles{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.shlog{display:flex;flex-direction:column}
+.shday{font-weight:700;font-size:13px;margin-top:8px;padding-bottom:2px;border-bottom:1px solid var(--line)}
+.shrow{display:flex;justify-content:space-between;gap:8px;padding:5px 0;font-size:13px;border-bottom:1px dashed var(--line)}
+.shrow:last-child{border-bottom:0}
+.stack{display:flex;flex-direction:column;gap:16px}
+.hhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.pbar{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--accent);width:0}
+.quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.qbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);text-align:left;min-width:0}
+.qbtn b{font-size:15px}
+.qbtn span{font-size:12px;color:var(--muted)}
+.qbtn:hover:not(:disabled){border-color:var(--accent)}
+.qbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.qbtn.primary span{color:inherit;opacity:.85}
+.qbtn:disabled{opacity:.45;cursor:not-allowed}
+.set.untried{background:var(--surface)}
+.set.untried .t span:last-child{display:none}
+.set .big{font-family:var(--f-mono);font-size:18px;font-weight:600;line-height:1}
+.stcell{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.weaklist{display:flex;flex-direction:column}
+.weakrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 4px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;font-size:14px}
+.weakrow:last-child{border-bottom:0}
+.weakrow:hover{background:var(--bg)}
+@media (max-width:560px){.runtitle{flex-basis:100%}.logrun>summary::before{display:none}}
 footer{font-size:12px;color:var(--muted);line-height:1.7}
 @media (max-width:560px){.srow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.srow .lbl{grid-column:1/-1}.tiles{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -194,19 +218,22 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
   </header>
   <div class="status" id="status" hidden></div>
 
-  <section id="vHome" class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
-      <h2>どこを解く？</h2>
-      <span class="muted small" id="homeSummary"></span>
+  <section id="vHome" class="stack">
+    <div class="panel">
+      <div class="hhead"><h2>すぐに解く</h2><span class="muted small" id="homeSummary"></span></div>
+      <div class="pbar" aria-hidden="true"><i id="homeBar"></i></div>
+      <div class="quick">
+        <button class="qbtn primary" id="mWrong" type="button"><b>前回間違えた問題だけ</b><span id="mWrongSub"></span></button>
+        <button class="qbtn" id="mRand1" type="button"><b>午前I ランダム30問</b><span>全年度からランダムに出題</span></button>
+        <button class="qbtn" id="mRand2" type="button"><b>午前II ランダム30問</b><span>全年度からランダムに出題</span></button>
+        <button class="qbtn" id="mNew" type="button"><b>未回答から10問</b><span>まだ解いていない問題</span></button>
+        <button class="qbtn" id="mDup" type="button"><b>頻出問題から10問</b><span>複数の年度で出た問題</span></button>
+      </div>
     </div>
-    <div class="modes">
-      <button class="chip" id="mWrong">間違えた問題だけ</button>
-      <button class="chip" id="mRand1">午前I ランダム10問</button>
-      <button class="chip" id="mRand2">午前II ランダム10問</button>
-      <button class="chip" id="mNew">未回答から10問</button>
-      <button class="chip" id="mDup">繰り返し出た問題から10問</button>
+    <div class="panel">
+      <div class="hhead"><h2>年度ごとに通しで解く</h2><span class="muted small">％は直近の通しテストの正答率</span></div>
+      <div class="sessions" id="sessions"></div>
     </div>
-    <div class="sessions" id="sessions"></div>
   </section>
 
   <section id="vQuiz" class="panel" hidden>
@@ -265,7 +292,6 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
       <h2>日ごとの解答履歴</h2>
       <label class="small muted" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="logWrongOnly"> 間違えた問題だけ表示</label>
     </div>
-    <div id="logCal" class="logcal" aria-label="直近5週間の解答数"></div>
     <div id="logList"></div>
   </section>
 
@@ -277,7 +303,7 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
 
   <section class="panel" id="sharePanel">
     <h2>進み具合を共有</h2>
-    <p class="muted small" style="margin:0">回答数・学習日数・通しテストの成績をまとめたリンクを作ります。リンクを開いた人は、あなたの進み具合を見られます（問題ごとの解答内容は含みません）。</p>
+    <p class="muted small" style="margin:0">いつ・どの問題を解いて何％だったか、回答数・学習日数・通しテストの成績をまとめたリンクを作ります（直近40回分。1問ごとの解答内容は含みません）。</p>
     <label class="small" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">表示名 <input id="shName" maxlength="20" placeholder="例：くぼ" style="font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;flex:1;max-width:240px"></label>
     <div class="resactions">
       <button class="btn" id="shMake">共有リンクを作る</button>
@@ -396,11 +422,13 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
         const b=el("button","set"); b.type="button"; b.disabled=!avail;
         const t=el("div","t"); t.append(el("span",null,SEC[sec].name));
         const F=st.full; const rate = F? F.ok/F.n : null;
-        const rs=el("span", rate==null?"muted":lv(rate), rate==null?"—":pc(rate)); t.append(rs);
+        const rs=el("span", "big "+(rate==null?"muted":lv(rate)), rate==null?"":pc(rate)); t.append(rs);
+        if(!F) b.classList.add("untried");
         const m=el("div","meter"); if(F){ const g=el("i"); g.style.width=(F.ok/F.n*100)+"%"; g.style.background="var(--good)";
         const r_=el("i"); r_.style.width=((F.n-F.ok)/F.n*100)+"%"; r_.style.background="var(--bad)"; m.append(g,r_); }
         const fmtDay = ts=>{ const d=new Date(ts), now=new Date(); const days=Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000); const md=`${d.getMonth()+1}/${d.getDate()}`; return days===0?"今日":days===1?"昨日":days<7?`${days}日前（${md}）`:(d.getFullYear()!==now.getFullYear()?`${d.getFullYear()}/`:"")+md; };
         const fwhen = F ? fmtDay(F.ts) : "";
+        if(!F) m.hidden=true;
         b.append(t,m,el("div","s", !avail? "準備中" : F? `通し ${F.ok}/${F.n}問正解・${fwhen}` : (st.done? `通し未実施（${st.done}/${st.n}問 回答済み）` : "未実施")));
         if(avail) b.addEventListener("click",()=>startSet(s.id,sec));
         else b.style.opacity=.5;
@@ -408,9 +436,10 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
       });
       box.append(row);
     });
-    $("homeSummary").textContent = `回答済み ${ans} / ${tot} 問`;
+    $("homeSummary").textContent = `回答済み ${ans} / ${tot} 問（${pc(tot?ans/tot:0)}）`;
+    $("homeBar").style.width=(tot?ans/tot*100:0)+"%";
     const wrongs=Object.values(rec).filter(r=>r.h&&r.h.length&&!r.last).length;
-    $("mWrong").textContent = `間違えた問題だけ（${wrongs}）`; $("mWrong").disabled = !wrongs;
+    $("mWrongSub").textContent = wrongs? `${wrongs}問（最大30問ずつ）` : "いまは対象の問題がありません"; $("mWrong").disabled = !wrongs;
   }
 
   // ---------- quiz ----------
@@ -431,7 +460,7 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
   async function renderQ(){
     const it=Q.items[Q.i]; const s=SID[it.s]; const sec=SEC[it.sec];
     $("qTitle").textContent=Q.title;
-    $("qPos").textContent=`${Q.i+1} / ${Q.items.length}　${s.label} ${sec.name} 問${it.n}`;
+    $("qPos").textContent= Q.title.startsWith(`${s.label} ${sec.name}`) ? `問${it.n}` : `${s.label} ${sec.name} 問${it.n}`;
     const dots=$("qDots"); dots.replaceChildren();
     Q.items.forEach((x,j)=>{ const d=el("i"); const a=Q.answered[j]; if(a) d.className=a.ok?"ok":"ng"; if(j===Q.i) d.classList.add("cur"); dots.append(d); });
     updateNav();
@@ -547,21 +576,24 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
     const rate=list=>list.length? list.filter(r=>r.last).length/list.length : null;
     const recent=[]; all.forEach(r=>r.h.forEach(h=>recent.push(h))); recent.sort((a,b)=>b[0]-a[0]);
     const r50=recent.slice(0,50);
-    const fullAvg=sec=>{ let ok=0,n=0,c=0; SESSIONS.forEach(s=>{ const F=setStats(s.id,sec).full; if(F){ ok+=F.ok; n+=F.n; c++; } }); return [n? ok/n : null, `${c}回分`]; };
-    const f1=fullAvg("am1"), f2=fullAvg("am2");
-    [["午前I 通し平均",f1[0],f1[1]],["午前II 通し平均",f2[0],f2[1]],["直近50回答",r50.length? r50.filter(h=>h[2]).length/r50.length:null,`${recent.length}回答`]].forEach(([k,v,sub])=>{
-      const t=el("div","tile"); t.append(el("span","k",k)); const vv=el("span","v "+(v==null?"":lv(v)), v==null?"—":pc(v)); vv.append(el("small",null," "+sub)); t.append(vv); tiles.append(t);
+    let totQ=0; SESSIONS.forEach(s=>["am1","am2"].forEach(sec=>{ if(AVAILABLE[s.id]&&AVAILABLE[s.id][sec]) totQ+=SEC[sec].n; }));
+    const r50v=r50.length? r50.filter(h=>h[2]).length/r50.length : null;
+    const wrongN=all.filter(r=>!r.last).length;
+    [["回答済み", String(all.length), `/ ${totQ}問`, ""],["直近50回答の正答率", r50v==null?"—":pc(r50v), `${recent.length}回答中`, r50v==null?"":lv(r50v)],["前回間違えた問題", String(wrongN), "問", wrongN?"lv-bad":""]].forEach(([k,v,sub,cls])=>{
+      const t=el("div","tile"); t.append(el("span","k",k)); const vv=el("span","v "+cls, v); vv.append(el("small",null," "+sub)); t.append(vv); tiles.append(t);
     });
     const tb=$("stTable"); tb.replaceChildren();
-    const hr=el("tr"); ["回","午前I 直近の通し","","午前II 直近の通し",""].forEach(h=>hr.append(el("th",null,h))); const th=el("thead"); th.append(hr); tb.append(th);
+    const hr=el("tr"); ["年度","午前I","午前II"].forEach(h=>hr.append(el("th",null,h))); const th=el("thead"); th.append(hr); tb.append(th);
     const body=el("tbody");
     SESSIONS.forEach(s=>{
       const tr=el("tr"); tr.append(el("td",null,s.label));
       ["am1","am2"].forEach(sec=>{
         const st=setStats(s.id,sec);
         const F=st.full;
-        tr.append(el("td","n",F?`${F.ok}/${F.n}`:"—"));
-        const td=el("td"); if(F){ td.append(el("span","pill "+lv(F.ok/F.n),pc(F.ok/F.n))); const d=new Date(F.ts); td.append(el("span","muted small",` ${d.getMonth()+1}/${d.getDate()}`)); } else td.append(el("span","muted","—")); tr.append(td);
+        const td=el("td"); const c=el("div","stcell");
+        if(F){ const d=new Date(F.ts); c.append(el("span","pill "+lv(F.ok/F.n),pc(F.ok/F.n)), el("span","muted small",`${F.ok}/${F.n}問・${d.getMonth()+1}/${d.getDate()}`)); }
+        else c.append(el("span","muted small","未実施"));
+        td.append(c); tr.append(td);
       });
       body.append(tr);
     });
@@ -586,11 +618,13 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
     } else dl.append(el("div","empty","読み込み中です。"));
     const w=$("weak"); w.replaceChildren();
     if(!weak.length){ w.append(el("div","empty","まだ間違えた問題はありません。")); return; }
+    const wl=el("div","weaklist");
     weak.forEach(x=>{
-      const b=el("button","set"); b.type="button"; b.style.marginBottom="6px";
-      const t=el("div","t"); t.append(el("span",null,`${SID[x.r.s].label} ${SEC[x.r.sec].name} 問${x.r.n}`), el("span",x.r.last?"lv-pass":"lv-bad",`×${x.miss} / ${x.n}回`));
-      b.append(t); b.addEventListener("click",()=>openQuiz("苦手問題",[{s:x.r.s,sec:x.r.sec,n:x.r.n}])); w.append(b);
+      const b=el("button","weakrow"); b.type="button";
+      b.append(el("span",null,`${SID[x.r.s].label} ${SEC[x.r.sec].name} 問${x.r.n}`), el("span","mono small "+(x.r.last?"lv-pass":"lv-bad"),`${x.n}回中 ${x.miss}回ミス`));
+      b.addEventListener("click",()=>openQuiz("よく間違える問題",[{s:x.r.s,sec:x.r.sec,n:x.r.n}])); wl.append(b);
     });
+    w.append(wl);
   }
 
   // ---------- log (by date) ----------
@@ -604,21 +638,6 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
   function renderLog(){
     const ev=allEvents(); const wrongOnly=$("logWrongOnly").checked;
     const byDay={}; ev.forEach(e=>{ (byDay[dkey(e.ts)] ||= []).push(e); });
-    // calendar: last 35 days
-    const cal=$("logCal"); cal.replaceChildren();
-    const today=new Date(); today.setHours(0,0,0,0);
-    for(let i=34;i>=0;i--){
-      const d=new Date(today); d.setDate(d.getDate()-i); const k=dkey(d.getTime()); const list=byDay[k]||[];
-      const c=el("button","calday"); c.type="button";
-      const n=list.length, ok=list.filter(e=>e.ok).length;
-      c.style.setProperty("--lv", n? Math.min(1, n/30)*0.85+0.15 : 0);
-      if(n) c.classList.add(ok/n>=0.8?"g":ok/n>=0.6?"w":"b");
-      c.title=`${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}） ${n}問`+(n?` 正解${ok}`:"");
-      c.append(el("span",null,String(d.getDate())));
-      if(n) c.addEventListener("click",()=>{ const t=document.getElementById("day-"+k); if(t) t.scrollIntoView({behavior:"smooth",block:"start"}); });
-      else c.disabled=true;
-      cal.append(c);
-    }
     const box=$("logList"); box.replaceChildren();
     const days=Object.keys(byDay).sort().reverse();
     if(!days.length){ box.append(el("div","empty","まだ解答がありません。問題を解くと、日付ごとにここへ記録されます。")); return; }
@@ -630,7 +649,7 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
       const sec=el("div","logday"); sec.id="day-"+k;
       const head=el("div","loghead");
       head.append(el("span","logdate",`${m}月${d}日（${wd}）`));
-      const stat=el("span","small"); stat.append(`${list.length}問　`, el("span","pill "+lv(ok/list.length),`正答率 ${pc(ok/list.length)}`), `　×${list.length-ok}`);
+      const stat=el("span","small"); stat.append(`${list.length}問　`, el("span","pill "+lv(ok/list.length),`正答率 ${pc(ok/list.length)}`), `　ミス${list.length-ok}`);
       head.append(stat);
       const btn=el("button","btn ghost small","この日の間違いを解き直す"); btn.type="button";
       const wrongItems=[]; const seen=new Set();
@@ -660,7 +679,7 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
         const sum=el("summary");
         sum.append(el("span","runtitle",title));
         const meta=el("span","runmeta");
-        meta.append(el("span","mono muted",`${hm(t0)}–${hm(t1)}`), el("span",null,`${items.length}問`), el("span","pill "+lv(okN/items.length),pc(okN/items.length)), el("span","lv-bad",`×${items.length-okN}`));
+        meta.append(el("span","mono muted",`${hm(t0)}–${hm(t1)}`), el("span",null,`${items.length}問`), el("span","pill "+lv(okN/items.length),pc(okN/items.length)), el("span","lv-bad",`ミス${items.length-okN}`));
         sum.append(meta);
         det.append(sum);
         const ul=el("ul","loglist");
@@ -686,6 +705,7 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
   function show(v){
     $("vHome").hidden = v!=="home"; $("vQuiz").hidden = v!=="quiz"; $("vStats").hidden = v!=="stats"; $("vLog").hidden = v!=="log"; $("vResult").hidden = v!=="result";
     $("tabPlay").setAttribute("aria-selected", String(v==="home"||v==="quiz"||v==="result")); $("tabStats").setAttribute("aria-selected", String(v==="stats")); $("tabLog").setAttribute("aria-selected", String(v==="log"));
+    $("sharePanel").hidden = v!=="stats"; $("backup").hidden = v!=="stats";
     if(v==="home") renderHome(); if(v==="stats") renderStats(); if(v==="log") renderLog();
   }
   $("tabLog").addEventListener("click",()=>show("log"));
@@ -698,10 +718,10 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
   $("qImg").addEventListener("click",()=>$("qImg").classList.toggle("zoom"));
   $("qNext").addEventListener("click",next);
   $("qPrev").addEventListener("click",prev);
-  $("mWrong").addEventListener("click",()=>openQuiz("間違えた問題", shuffle(Object.values(rec).filter(r=>r.h&&r.h.length&&!r.last&&AVAILABLE[r.s]&&AVAILABLE[r.s][r.sec]).map(r=>({s:r.s,sec:r.sec,n:r.n}))).slice(0,30)));
-  $("mRand1").addEventListener("click",()=>openQuiz("午前I ランダム", shuffle(availList("am1")).slice(0,10)));
-  $("mRand2").addEventListener("click",()=>openQuiz("午前II ランダム", shuffle(availList("am2")).slice(0,10)));
-  $("mDup").addEventListener("click",()=>{ const pick=shuffle(DUP.slice()).slice(0,10).map(g=>pk(g.m[0])); openQuiz("繰り返し出た問題", pick); });
+  $("mWrong").addEventListener("click",()=>openQuiz("前回間違えた問題", shuffle(Object.values(rec).filter(r=>r.h&&r.h.length&&!r.last&&AVAILABLE[r.s]&&AVAILABLE[r.s][r.sec]).map(r=>({s:r.s,sec:r.sec,n:r.n}))).slice(0,30)));
+  $("mRand1").addEventListener("click",()=>openQuiz("午前I ランダム30問", shuffle(availList("am1")).slice(0,30)));
+  $("mRand2").addEventListener("click",()=>openQuiz("午前II ランダム30問", shuffle(availList("am2")).slice(0,30)));
+  $("mDup").addEventListener("click",()=>{ const pick=shuffle(DUP.slice()).slice(0,10).map(g=>pk(g.m[0])); openQuiz("頻出問題", pick); });
   $("mNew").addEventListener("click",()=>openQuiz("未回答から", shuffle(availList().filter(x=>!groupDone(key(x.s,x.sec,x.n)))).slice(0,10)));
   document.addEventListener("keydown",e=>{
     if($("vQuiz").hidden) return;
@@ -739,19 +759,30 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
     let streak=0; let d=new Date(today); if(!days.has(dkey(d.getTime()))) d.setDate(d.getDate()-1);
     while(days.has(dkey(d.getTime()))){ streak++; d.setDate(d.getDate()-1); }
     const w=ev.filter(e=>e.ts>=t0-6*DAY); let done=0, tot=0; const f=[];
-    SESSIONS.forEach((s,si)=>["am1","am2"].forEach((sec,ci)=>{ if(!(AVAILABLE[s.id]&&AVAILABLE[s.id][sec])) return; const st=setStats(s.id,sec); done+=st.done; tot+=st.n; if(st.full) f.push([si,ci,st.full.ok,st.full.n,Math.floor(st.full.ts/DAY)]); }));
-    return {v:1, nm:(name||"").trim().slice(0,20), t:Math.floor(Date.now()/DAY), d:done, tot, a:ev.length, dy:days.size, st:streak, w:[w.length, w.filter(e=>e.ok).length], f};
+    SESSIONS.forEach((s,si)=>["am1","am2"].forEach((sec,ci)=>{ if(!(AVAILABLE[s.id]&&AVAILABLE[s.id][sec])) return; const st=setStats(s.id,sec); done+=st.done; tot+=st.n; if(st.full) f.push([si,ci,st.full.ok,st.full.n,Math.floor((st.full.ts-new Date().getTimezoneOffset()*60000)/DAY)]); }));
+    // runs: one quiz session = one row
+    const g={}; const order=[];
+    ev.slice().sort((a,b)=>a.ts-b.ts).forEach(e=>{ const k=e.sid?"s"+e.sid:"x"+dkey(e.ts)+e.s+e.sec; if(!g[k]){ g[k]=[]; order.push(k); } g[k].push(e); });
+    const runs=order.reverse().slice(0,40).map(k=>{ const it=g[k]; const f0=it[0]; const same=it.every(e=>e.s===f0.s&&e.sec===f0.sec);
+      const si=SESSIONS.findIndex(x=>x.id===f0.s); const ci=f0.sec==="am1"?0:1;
+      const full=same && f0.title && SID[f0.s] && f0.title.startsWith(SID[f0.s].label);
+      return [Math.floor((it[it.length-1].ts - new Date().getTimezoneOffset()*60000)/DAY), same?si:-1, same?ci:-1, full?"":(f0.title||"いろいろな問題").slice(0,20), it.length, it.filter(e=>e.ok).length]; });
+    return {v:1, nm:(name||"").trim().slice(0,20), t:Math.floor((Date.now()-new Date().getTimezoneOffset()*60000)/DAY), d:done, tot, a:ev.length, dy:days.size, st:streak, w:[w.length, w.filter(e=>e.ok).length], f, r:runs};
   }
-  const dstr=dn=>{ const x=new Date(dn*DAY); return `${x.getMonth()+1}/${x.getDate()}`; };
+  const dstr=dn=>{ const x=new Date(dn*DAY); return `${x.getUTCMonth()+1}/${x.getUTCDate()}`; };
+  const runName=r=>{ const [dn,si,ci,title]=r; const base= si>=0&&SESSIONS[si] ? `${SESSIONS[si].label} ${SEC[["am1","am2"][ci]].name}` : ""; return title ? (base? `${base}（${title}）` : title) : base; };
   function summaryCard(p){
     const c=el("div","shcard");
     const h=el("div","shhead"); h.append(el("span","shname",(p.nm||"だれか")+" さんの進み具合"), el("span","muted small",`${dstr(p.t)} 時点`)); c.append(h);
     const pr=p.tot? p.d/p.tot : 0;
     const bar=el("div"); bar.append(el("div","small",`回答済み ${p.d} / ${p.tot} 問（${pc(pr)}）`)); const sb=el("div","shbar"); const i=el("i"); i.style.width=(pr*100)+"%"; sb.append(i); bar.append(sb); c.append(bar);
     const tiles=el("div","shtiles");
-    const wr=p.w[0]? p.w[1]/p.w[0] : null;
-    [["学習した日",`${p.dy}`,"日"],["連続",`${p.st}`,"日"],["直近7日",`${p.w[0]}`,"問"],["直近7日 正答率", wr==null?"—":pc(wr), "", wr==null?"":lv(wr)]].forEach(([k,v,u,cls])=>{ const t=el("div","tile"); t.append(el("span","k",k)); const vv=el("span","v "+(cls||""),v); if(u) vv.append(el("small",null," "+u)); t.append(vv); tiles.append(t); });
+    [["学習した日",`${p.dy}`,"日"],["連続",`${p.st}`,"日"],["直近7日",`${p.w[0]}`,"問"]].forEach(([k,v,u,cls])=>{ const t=el("div","tile"); t.append(el("span","k",k)); const vv=el("span","v "+(cls||""),v); if(u) vv.append(el("small",null," "+u)); t.append(vv); tiles.append(t); });
     c.append(tiles);
+    if(p.r&&p.r.length){ const lg=el("div","shlog"); lg.append(el("div","small","解いた記録")); let last=null;
+      p.r.forEach(r=>{ const [dn,,,,n,ok]=r; if(dn!==last){ const x=new Date(dn*DAY); lg.append(el("div","shday",`${x.getUTCMonth()+1}月${x.getUTCDate()}日`)); last=dn; }
+        const row=el("div","shrow"); row.append(el("span",null,runName(r))); const v=el("span","mono"); v.append(`${n}問 `, el("b",lv(n?ok/n:0),pc(n?ok/n:0))); row.append(v); lg.append(row); });
+      c.append(lg); }
     const fr=el("div"); fr.append(el("div","small",`通しテスト ${p.f.length}回分（${SESSIONS.length*2}セット中）`));
     if(p.f.length){ const g=el("div","shruns"); p.f.forEach(([si,ci,ok,n,dn])=>{ const s=SESSIONS[si]; if(!s) return; const sec=["am1","am2"][ci]; const r=ok/n; const b=el("div","shrun"); b.append(el("span",null,`${shortLabel(s.id)} ${SEC[sec].name}`)); const v=el("span","mono "+lv(r),pc(r)); v.title=`${ok}/${n}（${dstr(dn)}）`; b.append(v); g.append(b); }); fr.append(g); }
     else fr.append(el("div","muted small","まだ通しで解いた回はありません。"));
@@ -759,11 +790,11 @@ footer{font-size:12px;color:var(--muted);line-height:1.7}
     return c;
   }
   function summaryText(p,url){
-    const wr=p.w[0]? `正答率 ${pc(p.w[1]/p.w[0])}` : "";
+    const logs=(p.r||[]).slice(0,10).map(r=>`${dstr(r[0])} ${runName(r).replace(/年度 /,"年度")} ${r[4]}問 ${pc(r[4]?r[5]/r[4]:0)}`);
     const runs=p.f.map(([si,ci,ok,n])=>`${shortLabel(SESSIONS[si].id)} ${SEC[["am1","am2"][ci]].name} ${pc(ok/n)}`);
     return [`【SC過去問道場】${p.nm?p.nm+"さんの":""}進み具合（${dstr(p.t)}時点）`,
       `回答済み ${p.d}/${p.tot}問（${pc(p.tot?p.d/p.tot:0)}）・学習 ${p.dy}日・連続 ${p.st}日`,
-      `直近7日 ${p.w[0]}問 ${wr}`.trim(),
+      ...(logs.length? ["▼解いた記録", ...logs, ...(p.r.length>10?[`ほか${p.r.length-10}件はリンク先で`]:[])] : []),
       runs.length? `通しテスト ${runs.length}回：`+runs.slice(0,6).join("、")+(runs.length>6?` ほか${runs.length-6}回`:"") : "通しテストはまだ",
       url].join("\n");
   }
