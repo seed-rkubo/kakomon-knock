@@ -403,6 +403,11 @@ details.sharefold[open]{background:var(--surface)}
 .ylbl b{font-size:26px}
 .ylbl span{font-size:12px}
 @media (max-width:640px){.ylbl{justify-content:center!important}.ylbl b{font-size:21px!important}}
+.shsec{display:flex;flex-direction:column;gap:2px}
+.shsech{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:6px 0 2px}
+.shy{display:inline-flex;align-items:center;gap:8px}
+.shy b{font-size:15px}
+.shitems{display:inline-flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;font-family:var(--f-mono);font-size:13px}
 .toplink{display:inline-block;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;margin:0 0 8px;padding:2px 0}.toplink:hover{color:var(--accent)}
 </style>
 <style>[hidden]{display:none!important}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px)}</style>
@@ -988,7 +993,7 @@ details.sharefold[open]{background:var(--surface)}
     let streak=0; let d=new Date(today); if(!days.has(dkey(d.getTime()))) d.setDate(d.getDate()-1);
     while(days.has(dkey(d.getTime()))){ streak++; d.setDate(d.getDate()-1); }
     const w=ev.filter(e=>e.ts>=t0-6*DAY); let done=0, tot=0; const f=[];
-    SESSIONS.forEach((s,si)=>["am1","am2"].forEach((sec,ci)=>{ if(!(AVAILABLE[s.id]&&AVAILABLE[s.id][sec])) return; const st=setStats(s.id,sec); done+=st.done; tot+=st.n; if(st.full) f.push([si,ci,st.full.ok,st.full.n,Math.floor((st.full.ts-new Date().getTimezoneOffset()*60000)/DAY)]); }));
+    SESSIONS.forEach((s,si)=>["am1","am2"].forEach((sec,ci)=>{ if(!(AVAILABLE[s.id]&&AVAILABLE[s.id][sec])) return; const st=setStats(s.id,sec); done+=st.done; tot+=st.n; if(st.full) f.push([si,ci,st.full.ok,st.full.n,Math.floor((st.full.ts-new Date().getTimezoneOffset()*60000)/DAY),st.cnt]); }));
     // runs: one quiz session = one row
     const g={}; const order=[];
     ev.slice().sort((a,b)=>a.ts-b.ts).forEach(e=>{ const k=e.sid?"s"+e.sid:"x"+dkey(e.ts)+e.s+e.sec; if(!g[k]){ g[k]=[]; order.push(k); } g[k].push(e); });
@@ -1000,29 +1005,47 @@ details.sharefold[open]{background:var(--surface)}
   }
   const dstr=dn=>{ const x=new Date(dn*DAY); return `${x.getUTCMonth()+1}/${x.getUTCDate()}`; };
   const runName=r=>{ const [dn,si,ci,title]=r; const base= si>=0&&SESSIONS[si] ? `${SESSIONS[si].label} ${SEC[["am1","am2"][ci]].name}` : ""; return title ? (base? `${base}（${title}）` : title) : base; };
+  const SN=si=>{ const s=SESSIONS[si]; if(!s) return ""; const k=s.id.slice(-1); return s.id.slice(0,4)+(k==="h"?"春":k==="a"?"秋":"10月"); };
+  const SECN=ci=>SEC[["am1","am2"][ci]].name;
+  // 今日解いたもの：同じ回・同じ種類（通し／解き直し／ランダム等）ごとに回数をまとめる
+  function todayGroups(p){
+    const g=[]; const m={};
+    (p.r||[]).filter(r=>r[0]===p.t).forEach(r=>{ const [,si,ci,title,n,ok]=r; const k=si+"|"+ci+"|"+title;
+      if(!m[k]){ m[k]={si,ci,title,cnt:0,n,ok}; g.push(m[k]); } m[k].cnt++; });
+    return g;
+  }
+  const tgName=x=> x.si>=0 ? `${SN(x.si)} ${SECN(x.ci)}${x.title? (x.title==="前回間違えた問題"?" 解き直し":`（${x.title}）`):""}` : (x.title||"いろいろな問題");
+  // 通算：年度ごとに、最後まで解いた回数と直近の正答率
+  function totalGroups(p){
+    const by={}; const order=[];
+    (p.f||[]).slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]).forEach(([si,ci,ok,n,dn,cnt])=>{ if(!SESSIONS[si]) return; if(!by[si]){ by[si]=[]; order.push(si); } by[si].push({ci,ok,n,cnt:cnt||1}); });
+    return order.map(si=>({si,items:by[si]}));
+  }
   function summaryCard(p){
     const c=el("div","shcard");
     const h=el("div","shhead"); h.append(el("span","shname",(p.nm||"だれか")+" さんの進み具合"), el("span","muted small",`${dstr(p.t)} 時点`)); c.append(h);
     const pr=p.tot? p.d/p.tot : 0;
     const bar=el("div"); bar.append(el("div","small",`回答済み ${p.d} / ${p.tot} 問（${pc(pr)}）`)); const sb=el("div","shbar"); const i=el("i"); i.style.width=(pr*100)+"%"; sb.append(i); bar.append(sb); c.append(bar);
-    const tiles=el("div","shtiles");
-    [["学習した日",`${p.dy}`,"日"],["連続",`${p.st}`,"日"],["直近7日",`${p.w[0]}`,"問"]].forEach(([k,v,u,cls])=>{ const t=el("div","tile"); t.append(el("span","k",k)); const vv=el("span","v "+(cls||""),v); if(u) vv.append(el("small",null," "+u)); t.append(vv); tiles.append(t); });
-    c.append(tiles);
-    if(p.r&&p.r.length){ const lg=el("div","shlog"); lg.append(el("div","small","解いた記録")); let last=null;
-      p.r.forEach(r=>{ const [dn,,,,n,ok]=r; if(dn!==last){ const x=new Date(dn*DAY); lg.append(el("div","shday",`${x.getUTCMonth()+1}月${x.getUTCDate()}日`)); last=dn; }
-        const row=el("div","shrow"); row.append(el("span",null,runName(r))); const v=el("span","mono"); v.append(`${n}問 `, el("b",lv(n?ok/n:0),pc(n?ok/n:0))); row.append(v); lg.append(row); });
-      c.append(lg); }
-    const fr=el("div"); fr.append(el("div","small",`通しテスト ${p.f.length}回分（${SESSIONS.length*2}セット中）`));
-    if(p.f.length){ const g=el("div","shruns"); p.f.forEach(([si,ci,ok,n,dn])=>{ const s=SESSIONS[si]; if(!s) return; const sec=["am1","am2"][ci]; const r=ok/n; const b=el("div","shrun"); b.append(el("span",null,`${shortLabel(s.id)} ${SEC[sec].name}`)); const v=el("span","mono "+lv(r),pc(r)); v.title=`${ok}/${n}（${dstr(dn)}）`; b.append(v); g.append(b); }); fr.append(g); }
-    else fr.append(el("div","muted small","まだ通しで解いた回はありません。"));
-    c.append(fr);
+    const td=el("div","shsec"); td.append(el("div","shsech","今日"));
+    const tg=todayGroups(p);
+    if(tg.length) tg.forEach(x=>{ const row=el("div","shrow"); row.append(el("span",null,tgName(x))); const v=el("span","mono"); const r=x.n?x.ok/x.n:0; v.append(el("b",null,`${x.cnt}回`), "　最新 ", el("b",lv(r),pc(r))); row.append(v); td.append(row); });
+    else td.append(el("div","muted small","今日はまだ解いていません。"));
+    c.append(td);
+    const tt=el("div","shsec"); tt.append(el("div","shsech","通算（最後まで解いた回数・直近の正答率）"));
+    const tg2=totalGroups(p);
+    if(tg2.length) tg2.forEach(G=>{ const row=el("div","shrow"); const s=SESSIONS[G.si]; const k=s.id.slice(-1);
+        const lb=el("span","shy"); lb.append(el("b","mono",s.id.slice(0,4)), el("span","ss ss-"+k,k==="h"?"春":k==="a"?"秋":"10月")); row.append(lb);
+        const v=el("span","shitems"); G.items.forEach(it=>{ const r=it.ok/it.n; const x=el("span","shit"); x.append(`${SECN(it.ci)} `, el("b",null,`${it.cnt}回`), " ", el("b",lv(r),pc(r))); v.append(x); }); row.append(v); tt.append(row); });
+    else tt.append(el("div","muted small","まだ最後まで解いた回はありません。"));
+    c.append(tt);
     return c;
   }
   function summaryText(p,url){
-    const recent=(p.r||[]).slice(0,3).map(r=>`${runName(r).replace(/年度 /,"年度").replace(/（前回間違えた問題）/,"（解き直し）")} ${pc(r[4]?r[5]/r[4]:0)}`);
-    return [`【SC過去問ノック】${p.nm?p.nm+"さん ":""}${dstr(p.t)}時点`,
-      `回答 ${p.d}/${p.tot}問・学習${p.dy}日`,
-      ...(recent.length?["最近："+recent.join("、")]:[]),
+    const tg=todayGroups(p).map(x=>`・${tgName(x)} ${x.cnt}回（最新${pc(x.n?x.ok/x.n:0)}）`);
+    const tt=totalGroups(p).map(G=>`・${SN(G.si)} `+G.items.map(it=>`${SECN(it.ci)} ${it.cnt}回(${pc(it.ok/it.n)})`).join("／"));
+    return [`【SC過去問ノック】${p.nm?p.nm+"さん ":""}${dstr(p.t)}`,
+      "■今日", ...(tg.length?tg:["・まだ解いていません"]),
+      "■通算（最後まで解いた回数）", ...(tt.length?tt:["・まだありません"]),
       url].join("\n");
   }
   let shareUrl="";
