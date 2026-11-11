@@ -849,7 +849,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
         const f=items[0];
         const same=items.every(e=>e.s===f.s&&e.sec===f.sec);
         let title = same ? `${SID[f.s]?SID[f.s].label:f.s} ${SEC[f.sec].name}` : (f.title||"いろいろな問題");
-        if(same && f.title && !f.title.startsWith(SID[f.s]?SID[f.s].label:"@@")) title += `（${f.title}）`;
+        if(same && f.title && f.title!==title) title += f.title.endsWith("の間違い") ? "（前回間違えた問題）" : `（${f.title}）`;
         const t0=new Date(items[0].ts), t1=new Date(items[items.length-1].ts);
         const hm=t=>`${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}`;
         const det=el("details","logrun");
@@ -955,8 +955,8 @@ footer{border-top:1px solid var(--line);padding-top:16px}
     ev.slice().sort((a,b)=>a.ts-b.ts).forEach(e=>{ const k=e.sid?"s"+e.sid:"x"+dkey(e.ts)+e.s+e.sec; if(!g[k]){ g[k]=[]; order.push(k); } g[k].push(e); });
     const runs=order.reverse().slice(0,40).map(k=>{ const it=g[k]; const f0=it[0]; const same=it.every(e=>e.s===f0.s&&e.sec===f0.sec);
       const si=SESSIONS.findIndex(x=>x.id===f0.s); const ci=SK.indexOf(f0.sec);
-      const full=same && f0.title && SID[f0.s] && f0.title.startsWith(SID[f0.s].label);
-      return [Math.floor((it[it.length-1].ts - new Date().getTimezoneOffset()*60000)/DAY), same?si:-1, same?ci:-1, full?"":(f0.title||"いろいろな問題").slice(0,20), it.length, it.filter(e=>e.ok).length]; });
+      const base0=SID[f0.s]?`${SID[f0.s].label} ${SEC[f0.sec].name}`:""; const full=same && f0.title===base0;
+      return [Math.floor((it[it.length-1].ts - new Date().getTimezoneOffset()*60000)/DAY), same?si:-1, same?ci:-1, full?"":((f0.title||"").endsWith("の間違い")&&same?"前回間違えた問題":(f0.title||"いろいろな問題")).slice(0,20), it.length, it.filter(e=>e.ok).length]; });
     return {v:1, nm:(name||"").trim().slice(0,20), t:Math.floor((Date.now()-new Date().getTimezoneOffset()*60000)/DAY), d:done, tot, a:ev.length, dy:days.size, st:streak, w:[w.length, w.filter(e=>e.ok).length], f, r:runs};
   }
   const dstr=dn=>{ const x=new Date(dn*DAY); return `${x.getUTCMonth()+1}/${x.getUTCDate()}`; };
