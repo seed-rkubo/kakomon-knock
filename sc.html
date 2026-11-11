@@ -352,6 +352,33 @@ footer{border-top:1px solid var(--line);padding-top:16px}
 .set .s.done .sw{color:var(--muted);font-family:var(--f-body)}
 .rc{margin-left:auto;font-family:var(--f-mono);font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 8px;line-height:1.6;white-space:nowrap}
 .rc-legend{margin:0 2px;display:inline-block}
+.yhead,.yr{display:grid;grid-template-columns:minmax(0,130px) minmax(0,1fr);gap:0 10px}
+.yhead{grid-template-columns:minmax(0,130px) 44px minmax(0,1fr) minmax(0,1fr);gap:8px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;padding:0 0 6px;border-bottom:1px solid var(--line)}
+.yr{padding:8px 0;border-bottom:1px solid var(--line)}
+.yr:last-child{border-bottom:0}
+.ylbl{display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0}
+.ylbl b{font-family:var(--f-mono);font-size:20px;line-height:1.1}
+.ylbl span{font-size:11px;color:var(--muted)}
+.yrows{display:flex;flex-direction:column;gap:6px;min-width:0}
+.yrow{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
+.ss{display:inline-grid;place-items:center;width:38px;height:26px;border-radius:7px;font-weight:700;font-size:13px}
+.ss-h{background:#e3f3e8;color:#2f7d4a}
+.ss-a{background:#fbe9dc;color:#b4541b}
+.ss-o{background:#ece7fa;color:#6a4fb3;font-size:12px}
+:root[data-theme="dark"] .ss-h{background:#173a25;color:#7dd29b}
+:root[data-theme="dark"] .ss-a{background:#3d2414;color:#f0a06a}
+:root[data-theme="dark"] .ss-o{background:#2a2245;color:#b8a5f2}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .ss-h{background:#173a25;color:#7dd29b}:root:not([data-theme="light"]) .ss-a{background:#3d2414;color:#f0a06a}:root:not([data-theme="light"]) .ss-o{background:#2a2245;color:#b8a5f2}}
+.ynote{font-size:11px;color:var(--muted);padding-left:52px}
+@media (max-width:640px){
+  .yhead{display:none}
+  .yr{grid-template-columns:1fr;gap:6px}
+  .ylbl{flex-direction:row;align-items:baseline;justify-content:flex-start;gap:8px}
+  .yrow .set .t,.yrow .set .s{width:100%}
+  .ylbl b{font-size:17px}
+  .yrow{grid-template-columns:38px minmax(0,1fr) minmax(0,1fr);gap:6px}
+  .ynote{padding-left:44px}
+}
 .toplink{display:inline-block;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;margin:0 0 8px;padding:2px 0}.toplink:hover{color:var(--accent)}
 </style>
 <style>[hidden]{display:none!important}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px)}</style>
@@ -571,34 +598,48 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   }
   function renderHome(){
     const box=$("sessions"); box.replaceChildren();
-    const hd=el("div","srow shead"); hd.append(el("span","h0","年度"), el("span",null,"午前I"), el("span",null,"午前II")); box.append(hd);
+    const hd=el("div","yhead"); hd.append(el("span",null,"年度"), el("span"), el("span",null,"午前I"), el("span",null,"午前II")); box.append(hd);
     let tot=0, ans=0;
-    SESSIONS.forEach(s=>{
-      const row=el("div","srow");
-      const l=el("div","lbl",s.label); l.append(el("small",null, s.exam==="情報処理安全確保支援士試験"?"":"情報セキュリティスペシャリスト")); row.append(l);
+    // 年度ごとにまとめる（秋→10月→春の順）
+    const years=[]; const ymap={};
+    SESSIONS.forEach(s=>{ const y=+s.id.slice(0,4); if(!ymap[y]){ ymap[y]={y,list:[]}; years.push(ymap[y]); } ymap[y].list.push(s); });
+    const ord={a:0,o:1,h:2};
+    years.forEach(Y=>{
+      Y.list.sort((x,z)=>ord[x.id.slice(-1)]-ord[z.id.slice(-1)]);
+      const wa=[...new Set(Y.list.map(s=>s.label.split(" ")[0].replace(/年度$/,"")))];
+      const yr=el("div","yr");
+      const yl=el("div","ylbl"); yl.append(el("b",null,String(Y.y)), el("span",null,wa.join(" / ")+"年度")); yr.append(yl);
+      const rows=el("div","yrows");
+      Y.list.forEach(s=>{
+        const k=s.id.slice(-1);
+        const row=el("div","yrow");
+        const bd=el("span","ss ss-"+k, k==="h"?"春":k==="a"?"秋":"10月"); bd.title=s.label; row.append(bd);
       ["am1","am2"].forEach(sec=>{
-        const st=setStats(s.id,sec); tot+=st.n; ans+=st.done;
-        const avail = AVAILABLE[s.id] && AVAILABLE[s.id][sec];
-        const b=el("button","set"); b.type="button"; b.disabled=!avail;
-        const t=el("div","t"); t.append(el("span",null,SEC[sec].name));
-        const F=st.full; const rate = F? F.ok/F.n : null;
-        const rs=el("span", "big "+(rate==null?"muted":lv(rate)), rate==null?"":pc(rate)); t.append(rs);
-        if(!F) b.classList.add("untried");
-        const m=el("div","meter"); if(F){ const g=el("i"); g.style.width=(F.ok/F.n*100)+"%"; g.style.background="var(--good)";
-        const r_=el("i"); r_.style.width=((F.n-F.ok)/F.n*100)+"%"; r_.style.background="var(--bad)"; m.append(g,r_); }
-        const fmtDay = ts=>{ const d=new Date(ts), now=new Date(); const days=Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000); const md=`${d.getMonth()+1}/${d.getDate()}`; return days===0?"今日":days===1?"昨日":days<7?`${days}日前（${md}）`:(d.getFullYear()!==now.getFullYear()?`${d.getFullYear()}/`:"")+md; };
-        const fwhen = F ? (d=>`${d.getMonth()+1}/${d.getDate()}`)(new Date(F.ts)) : "";
-        if(!F) m.hidden=true;
-        const sline=el("div","s");
-        if(!avail) sline.textContent="準備中";
-        else if(F){ sline.classList.add("done"); sline.append(el("span","sc",`${F.ok}/${F.n}`), el("span","sw",fwhen)); const c=el("span","rc",`${st.cnt}回`); c.title=`最後まで解いた回数：${st.cnt}回`; t.append(c); }
-        else sline.textContent = st.done? `途中 ${st.done}/${st.n}問` : "未実施";
-        b.append(t,m,sline);
-        if(avail) b.addEventListener("click",()=>startSet(s.id,sec));
-        else b.style.opacity=.5;
-        row.append(b);
+          const st=setStats(s.id,sec); tot+=st.n; ans+=st.done;
+          const avail = AVAILABLE[s.id] && AVAILABLE[s.id][sec];
+          const b=el("button","set"); b.type="button"; b.disabled=!avail;
+          const t=el("div","t"); t.append(el("span",null,SEC[sec].name));
+          const F=st.full; const rate = F? F.ok/F.n : null;
+          const rs=el("span", "big "+(rate==null?"muted":lv(rate)), rate==null?"":pc(rate)); t.append(rs);
+          if(!F) b.classList.add("untried");
+          const m=el("div","meter"); if(F){ const g=el("i"); g.style.width=(F.ok/F.n*100)+"%"; g.style.background="var(--good)";
+          const r_=el("i"); r_.style.width=((F.n-F.ok)/F.n*100)+"%"; r_.style.background="var(--bad)"; m.append(g,r_); }
+          const fmtDay = ts=>{ const d=new Date(ts), now=new Date(); const days=Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000); const md=`${d.getMonth()+1}/${d.getDate()}`; return days===0?"今日":days===1?"昨日":days<7?`${days}日前（${md}）`:(d.getFullYear()!==now.getFullYear()?`${d.getFullYear()}/`:"")+md; };
+          const fwhen = F ? (d=>`${d.getMonth()+1}/${d.getDate()}`)(new Date(F.ts)) : "";
+          if(!F) m.hidden=true;
+          const sline=el("div","s");
+          if(!avail) sline.textContent="準備中";
+          else if(F){ sline.classList.add("done"); sline.append(el("span","sc",`${F.ok}/${F.n}`), el("span","sw",fwhen)); const c=el("span","rc",`${st.cnt}回`); c.title=`最後まで解いた回数：${st.cnt}回`; t.append(c); }
+          else sline.textContent = st.done? `途中 ${st.done}/${st.n}問` : "未実施";
+          b.append(t,m,sline);
+          if(avail) b.addEventListener("click",()=>startSet(s.id,sec));
+          else b.style.opacity=.5;
+          row.append(b);
+        });
+        rows.append(row);
+        if(s.exam!=="情報処理安全確保支援士試験") rows.append(el("div","ynote",`※ ${k==="h"?"春期":"秋期"}は${s.exam.replace("試験","")}試験`));
       });
-      box.append(row);
+      yr.append(rows); box.append(yr);
     });
     $("homeSummary").textContent = `回答済み ${ans} / ${tot} 問（${pc(tot?ans/tot:0)}）`;
     $("homeBar").style.width=(tot?ans/tot*100:0)+"%";
