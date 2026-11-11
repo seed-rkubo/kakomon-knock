@@ -345,6 +345,13 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   .qbtn.primary{flex-wrap:wrap}
   .qbtn.primary::after{display:none}
 }
+.set .s.done{display:flex;align-items:center;gap:8px;font-family:var(--f-mono);white-space:nowrap}
+.set .t .rc{order:3}
+.set .t .big{margin-right:auto}
+.set .s.done .sc{color:var(--fg);font-weight:700}
+.set .s.done .sw{color:var(--muted);font-family:var(--f-body)}
+.rc{margin-left:auto;font-family:var(--f-mono);font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 8px;line-height:1.6;white-space:nowrap}
+.rc-legend{margin:0 2px;display:inline-block}
 .toplink{display:inline-block;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;margin:0 0 8px;padding:2px 0}.toplink:hover{color:var(--accent)}
 </style>
 <style>[hidden]{display:none!important}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px)}</style>
@@ -383,7 +390,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
       </div>
     </div>
     <div class="panel">
-      <div class="hhead"><h2>年度ごとに通しで解く</h2><span class="muted small">％は直近の通しテストの正答率</span></div>
+      <div class="hhead"><h2>年度ごとに通しで解く</h2><span class="muted small">％・点数は直近の結果、<span class="rc rc-legend">◯回</span>は最後まで解いた回数</span></div>
       <div class="sessions" id="sessions"></div>
     </div>
   </section>
@@ -586,7 +593,11 @@ footer{border-top:1px solid var(--line);padding-top:16px}
         const fmtDay = ts=>{ const d=new Date(ts), now=new Date(); const days=Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000); const md=`${d.getMonth()+1}/${d.getDate()}`; return days===0?"今日":days===1?"昨日":days<7?`${days}日前（${md}）`:(d.getFullYear()!==now.getFullYear()?`${d.getFullYear()}/`:"")+md; };
         const fwhen = F ? fmtDay(F.ts) : "";
         if(!F) m.hidden=true;
-        b.append(t,m,el("div","s", !avail? "準備中" : F? `通し${st.cnt}回・直近 ${F.ok}/${F.n}・${fwhen}` : (st.done? `途中 ${st.done}/${st.n}問` : "未実施")));
+        const sline=el("div","s");
+        if(!avail) sline.textContent="準備中";
+        else if(F){ sline.classList.add("done"); sline.append(el("span","sc",`${F.ok}/${F.n}`), el("span","sw",fwhen)); const c=el("span","rc",`${st.cnt}回`); c.title=`最後まで解いた回数：${st.cnt}回`; t.append(c); }
+        else sline.textContent = st.done? `途中 ${st.done}/${st.n}問` : "未実施";
+        b.append(t,m,sline);
         if(avail) b.addEventListener("click",()=>startSet(s.id,sec));
         else b.style.opacity=.5;
         row.append(b);
