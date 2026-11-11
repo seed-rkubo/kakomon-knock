@@ -563,11 +563,13 @@ details.sharefold[open]{background:var(--surface)}
   const pc=p=>Math.round(p*100)+"%";
   function setStatus(m){ const s=$("status"); s.hidden=!m; s.textContent=m||""; }
 
-  const LSKEY="sc-dojo-records-v1";
+  const LSKEY="kk-sc-records-v1", NMKEY="kk-sc-name";
+  // 旧名称の保存データを新しい名前へ移し、旧データは削除する（記録はそのまま引き継がれる）
+  try{ [["sc-dojo-records-v1",LSKEY],["sc-dojo-name",NMKEY]].forEach(([o,n])=>{ const v=localStorage.getItem(o); if(v!=null){ if(localStorage.getItem(n)==null) localStorage.setItem(n,v); localStorage.removeItem(o); } }); }catch(e){}
   function saveLocal(){ try{ localStorage.setItem(LSKEY, JSON.stringify(rec)); }catch(e){ setStatus("記録を保存できませんでした（ブラウザの保存領域が使えません）。"); } }
   function loadLocal(){ try{ const v=localStorage.getItem(LSKEY); return v?JSON.parse(v):{}; }catch(e){ return {}; } }
   let rec = {};           // key -> {s,sec,n,h:[[ts,choice,ok]],last}
-  try{ rec = JSON.parse(localStorage.getItem("sc-dojo-records-v1")||"{}"); }catch(e){ rec={}; }
+  try{ rec = JSON.parse(localStorage.getItem(LSKEY)||"{}"); }catch(e){ rec={}; }
   const cache = {};       // "id_sec" -> {qs:[{n,a,img}], ex:{n:text}}
 
   let DUP=[], DUPOF={};
@@ -975,7 +977,7 @@ details.sharefold[open]{background:var(--surface)}
   show("home");
 
   $("bkExport").addEventListener("click",()=>{
-    const blob=new Blob([JSON.stringify({app:"sc-dojo",v:1,exported:new Date().toISOString(),rec},null,0)],{type:"application/json"});
+    const blob=new Blob([JSON.stringify({app:"kakomon-knock-sc",v:1,exported:new Date().toISOString(),rec},null,0)],{type:"application/json"});
     const a=document.createElement("a"); const d=new Date();
     a.href=URL.createObjectURL(blob); a.download=`kakomon-knock-sc-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}.json`;
     document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
@@ -1086,9 +1088,9 @@ details.sharefold[open]{background:var(--surface)}
       url].join("\n");
   }
   let shareUrl="";
-  try{ $("shName").value=localStorage.getItem("sc-dojo-name")||""; }catch(e){}
+  try{ $("shName").value=localStorage.getItem(NMKEY)||""; }catch(e){}
   $("shMake").addEventListener("click",async()=>{
-    const name=$("shName").value.trim(); try{ localStorage.setItem("sc-dojo-name",name); }catch(e){}
+    const name=$("shName").value.trim(); try{ localStorage.setItem(NMKEY,name); }catch(e){}
     const p=buildSummary(name);
     shareUrl=location.origin+location.pathname+"#p="+b64e(JSON.stringify(p));
     const text=summaryText(p,shareUrl);
