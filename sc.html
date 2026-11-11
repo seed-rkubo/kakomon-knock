@@ -434,9 +434,18 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
 
   const LSKEY="kk-sc-records-v1", NMKEY="kk-sc-name";
   // 記録の統合：解いた時刻が同じ解答は同じものとみなし、重複して数えない。base に inc を足し、足した件数を返す
+  // 外から入ってくる記録（引き継ぎコード・ファイル・他タブ）は、形が正しい解答だけを受け入れる
+  const CH=["ア","イ","ウ","エ"];
+  function cleanRec(r,k){
+    if(!r||typeof r!=="object"||!SID[r.s]||!SEC[r.sec]||!Number.isInteger(r.n)||r.n<1||r.n>SEC[r.sec].n||key(r.s,r.sec,r.n)!==k||!Array.isArray(r.h)) return null;
+    const h=r.h.filter(x=>Array.isArray(x)&&Number.isFinite(x[0])&&x[0]>0&&x[0]<Date.now()+864e5&&CH.includes(x[1]))
+      .map(x=>[x[0],x[1],x[2]?1:0,Number.isFinite(x[3])?x[3]:(typeof x[3]==="string"?x[3].slice(0,40):0),typeof x[4]==="string"?x[4].slice(0,80):""])
+      .slice(-20);
+    return h.length? {s:r.s,sec:r.sec,n:r.n,h,last:h[h.length-1][2],...(CH.includes(r.a)?{a:r.a}:{})} : null;
+  }
   function mergeInto(base,inc){
     let add=0;
-    for(const k in inc||{}){ const r=inc[k]; if(!r||!Array.isArray(r.h)||!r.h.length) continue;
+    for(const k of Object.keys(inc||{})){ const r=cleanRec(inc[k],k); if(!r) continue;
       const cur=base[k]; if(!cur||!cur.h||!cur.h.length){ base[k]=r; add+=r.h.length; continue; }
       const seen=new Set(cur.h.map(x=>x[0])); const nw=r.h.filter(x=>!seen.has(x[0])); if(!nw.length) continue;
       const hh=[...cur.h, ...nw].sort((x,y)=>x[0]-y[0]).slice(-20);
