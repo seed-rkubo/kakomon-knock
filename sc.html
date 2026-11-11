@@ -290,6 +290,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     </div>
   </header>
   <div class="status" id="status" hidden></div>
+  <div class="status" id="inapp" hidden>LINEなどアプリ内のブラウザで開いています。ここで解いた記録は、閉じると消えることがあります。右上のメニューから「ブラウザで開く」（Safari／Chrome）を選んでください。</div>
 
   <section id="vHome" class="stack">
     <div class="panel">
@@ -423,11 +424,25 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   function setStatus(m){ const s=$("status"); s.hidden=!m; s.textContent=m||""; }
 
   const LSKEY="kk-sc-records-v1", NMKEY="kk-sc-name";
-  // 旧名称の保存データを新しい名前へ移し、旧データは削除する（記録はそのまま引き継がれる）
-  try{ [["sc-dojo-records-v1",LSKEY],["sc-dojo-name",NMKEY]].forEach(([o,n])=>{ const v=localStorage.getItem(o); if(v!=null){ if(localStorage.getItem(n)==null) localStorage.setItem(n,v); localStorage.removeItem(o); } }); }catch(e){}
-  function saveLocal(){ try{ localStorage.setItem(LSKEY, JSON.stringify(rec)); }catch(e){ setStatus("記録を保存できませんでした（ブラウザの保存領域が使えません）。"); } }
-  let rec = {};           // key -> {s,sec,n,h:[[ts,choice,ok]],last}
-  try{ rec = JSON.parse(localStorage.getItem(LSKEY)||"{}"); }catch(e){ rec={}; }
+  // 記録の統合：解いた時刻が同じ解答は同じものとみなし、重複して数えない。base に inc を足し、足した件数を返す
+  function mergeInto(base,inc){
+    let add=0;
+    for(const k in inc||{}){ const r=inc[k]; if(!r||!Array.isArray(r.h)||!r.h.length) continue;
+      const cur=base[k]; if(!cur||!cur.h||!cur.h.length){ base[k]=r; add+=r.h.length; continue; }
+      const seen=new Set(cur.h.map(x=>x[0])); const nw=r.h.filter(x=>!seen.has(x[0])); if(!nw.length) continue;
+      const hh=[...cur.h, ...nw].sort((x,y)=>x[0]-y[0]).slice(-20);
+      base[k]={...cur, h:hh, last:hh[hh.length-1][2]?1:0, a:cur.a||r.a}; add+=nw.length; }
+    return add;
+  }
+  const readKey=k=>{ try{ return JSON.parse(localStorage.getItem(k)||"{}")||{}; }catch(e){ return {}; } };
+  let rec = readKey(LSKEY);   // key -> {s,sec,n,h:[[ts,choice,ok,sid,title]],last}
+  // 旧名称の保存データは、新しい記録に統合してから削除する（どちらかの記録が消えることはない）
+  try{ const OLD="sc-dojo-records-v1"; if(localStorage.getItem(OLD)!=null){ mergeInto(rec, readKey(OLD)); localStorage.setItem(LSKEY, JSON.stringify(rec)); localStorage.removeItem(OLD); }
+       const ON="sc-dojo-name"; const ov=localStorage.getItem(ON); if(ov!=null){ if(!localStorage.getItem(NMKEY)) localStorage.setItem(NMKEY,ov); localStorage.removeItem(ON); } }catch(e){}
+  // 保存の直前に、ほかのタブ・ページが保存した記録を取り込んでから書く（古い画面が新しい記録を上書きしない）
+  function saveLocal(){ try{ mergeInto(rec, readKey(LSKEY)); localStorage.setItem(LSKEY, JSON.stringify(rec)); }catch(e){ setStatus("記録を保存できませんでした（ブラウザの保存領域が使えません）。"); } }
+  if(/\bLine\/|FBAN|FBAV|Instagram/i.test(navigator.userAgent)) $("inapp").hidden=false;
+  window.addEventListener("storage",e=>{ if(e.key===LSKEY && mergeInto(rec, readKey(LSKEY))){ if(!$("vHome").hidden) renderHome(); if(!$("vLog").hidden) renderLog(); } });
   const cache = {};       // "id_sec" -> {qs:[{n,a,img}], ex:{n:text}}
 
   let DUP=[], DUPOF={};
@@ -815,14 +830,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   });
   // 記録の統合：解いた時刻が同じ解答は同じものとみなし、重複して数えない
   function mergeRec(inc){
-    let n=0, add=0;
-    for(const k in inc){ const r=inc[k]; if(!r||!Array.isArray(r.h)||!r.h.length) continue;
-      const cur=rec[k]; if(!cur||!cur.h||!cur.h.length){ rec[k]=r; n++; add+=r.h.length; continue; }
-      const seen=new Set(cur.h.map(x=>x[0])); const nw=r.h.filter(x=>!seen.has(x[0])); if(!nw.length) continue;
-      const hh=[...cur.h, ...nw].sort((x,y)=>x[0]-y[0]).slice(-20);
-      rec[k]={...cur, h:hh, last:hh[hh.length-1][2]?1:0, a:cur.a||r.a}; n++; add+=nw.length; }
+    const add=mergeInto(rec,inc);
     saveLocal(); renderHome(); if(!$("vLog").hidden) renderLog();
-    return {n,add};
+    return {add};
   }
   $("bkImport").addEventListener("change",async e=>{
     const f=e.target.files[0]; if(!f) return;
