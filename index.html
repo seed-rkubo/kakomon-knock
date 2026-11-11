@@ -36,7 +36,7 @@ header{display:flex;align-items:center;gap:12px;margin-bottom:22px}
 h1{font-family:var(--f-display);font-weight:900;font-size:24px;margin:0;line-height:1.2;letter-spacing:.02em}
 .sub{font-size:12px;color:var(--muted);letter-spacing:.06em}
 .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.card{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+.card{display:flex;flex-direction:column;gap:18px;min-height:150px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
 .card:hover{border-color:var(--accent);transform:translateY(-1px)}
 .card:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .ch{display:flex;align-items:center;gap:12px}
@@ -91,106 +91,16 @@ footer{margin-top:30px;font-size:12px;color:var(--muted)}
   <div class="cards">
     <a class="card" href="sc.html" id="cardSC">
       <div class="ch"><div class="badge">SC</div><div><div class="ct">情報処理安全確保支援士</div><div class="cs">午前I・午前II ／ 19回分</div></div></div>
-      <div class="nums" id="numSC"></div>
-      <div class="bar"><i id="barSC"></i></div>
       <div class="go">SCを開く</div>
     </a>
     <a class="card" href="fe/" id="cardFE">
       <div class="ch"><div class="badge">FE</div><div><div class="ct">基本情報技術者</div><div class="cs">科目A・科目B・免除試験・旧午前</div></div></div>
-      <div class="nums" id="numFE"></div>
-      <div class="bar"><i id="barFE"></i></div>
       <div class="go">FEを開く</div>
     </a>
   </div>
 
-  <h2>年度別の通し回数</h2>
-  <p class="note">各回を最初から最後まで解き切った回数です。右の％は直近の通しの正答率。</p>
-  <div class="seg" role="tablist">
-    <button role="tab" id="tSC" aria-selected="true">SC</button>
-    <button role="tab" id="tFE" aria-selected="false">FE</button>
-  </div>
-  <div class="tbl" id="tbl"></div>
-
   <footer>記録はこのブラウザに保存されています。問題の出典：IPA 公開の過去問題。</footer>
 </div>
 
-<script>
-(function(){
-  const EX={
-    SC:{key:"sc-dojo-records-v1",
-      sec:{am1:{name:"午前I",n:30},am2:{name:"午前II",n:25}},
-      groups:[{title:null,secs:["am1","am2"],s:[
-        ["2025r07a","令和7年度 秋期"],["2025r07h","令和7年度 春期"],["2024r06a","令和6年度 秋期"],["2024r06h","令和6年度 春期"],
-        ["2023r05a","令和5年度 秋期"],["2023r05h","令和5年度 春期"],["2022r04a","令和4年度 秋期"],["2022r04h","令和4年度 春期"],
-        ["2021r03a","令和3年度 秋期"],["2021r03h","令和3年度 春期"],["2020r02o","令和2年度 10月"],["2019r01a","令和元年度 秋期"],
-        ["2019h31h","平成31年度 春期"],["2018h30a","平成30年度 秋期"],["2018h30h","平成30年度 春期"],["2017h29a","平成29年度 秋期"],
-        ["2017h29h","平成29年度 春期"],["2016h28a","平成28年度 秋期"],["2016h28h","平成28年度 春期"]]}]},
-    FE:{key:"fe-dojo-records-v1",
-      sec:{a:{name:"科目A",n:20},b:{name:"科目B",n:6},mj:{name:"免除試験",n:60},am:{name:"午前",n:80}},
-      groups:[
-        {title:"新形式 公開問題",secs:["a","b"],s:[["2026r08","令和8年度"],["2025r07","令和7年度"],["2024r06","令和6年度"],["2023r05","令和5年度"]]},
-        {title:"科目A免除試験",secs:["mj"],s:"20260726 20260614 20260125 20251214 20250727 20250608 20250126 20241208 20240728 20240609 20240128 20231210 20230723 20230611".split(" ").map(d=>["m"+d,`${d.slice(0,4)}年${+d.slice(4,6)}月${+d.slice(6)}日`])},
-        {title:"旧試験 午前",secs:["am"],s:[["2019r01a","令和元年度 秋期"],["2019h31h","平成31年度 春期"],["2018h30a","平成30年度 秋期"],["2018h30h","平成30年度 春期"],
-          ["2017h29a","平成29年度 秋期"],["2017h29h","平成29年度 春期"],["2016h28a","平成28年度 秋期"],["2016h28h","平成28年度 春期"],["2015h27a","平成27年度 秋期"],["2015h27h","平成27年度 春期"]]}]}
-  };
-  const $=id=>document.getElementById(id);
-  const el=(t,c,x)=>{const e=document.createElement(t); if(c) e.className=c; if(x!=null) e.textContent=x; return e;};
-  const pc=r=>Math.round(r*100)+"%";
-  function load(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):{}; }catch(e){ return {}; } }
-
-  // 記録から「回ごと（年度×区分）」の通し回数・直近の正答率・回答済み問題数を集計する
-  function summarize(ex){
-    const rec=load(ex.key), sets={};
-    Object.entries(rec).forEach(([k,r])=>{
-      const m=k.match(/^(.+)_([a-z0-9]+)_(\d+)$/); if(!m||!ex.sec[m[2]]||!r||!r.h||!r.h.length) return;
-      const id=m[1]+"|"+m[2], n=+m[3];
-      const S=sets[id]||(sets[id]={done:0,runs:{}}); S.done++;
-      r.h.forEach(h=>{ if(!h[3]) return; const g=S.runs[h[3]]||(S.runs[h[3]]={q:{},ts:0}); g.q[n]=h[2]; if(h[0]>g.ts) g.ts=h[0]; });
-    });
-    const out={}; let totalRuns=0, answered=0, lastTs=0;
-    Object.entries(sets).forEach(([id,S])=>{
-      const N=ex.sec[id.split("|")[1]].n; let cnt=0, last=null;
-      Object.values(S.runs).forEach(g=>{ const ks=Object.keys(g.q); if(ks.length>=N){ cnt++; if(!last||g.ts>last.ts) last={ts:g.ts,ok:ks.filter(x=>g.q[x]).length,n:N}; } if(g.ts>lastTs) lastTs=g.ts; });
-      out[id]={cnt,last,done:S.done}; totalRuns+=cnt; answered+=S.done;
-    });
-    let total=0; ex.groups.forEach(G=>G.s.forEach(()=>G.secs.forEach(sc=>total+=ex.sec[sc].n)));
-    return {sets:out,totalRuns,answered,total,lastTs};
-  }
-  const S={SC:summarize(EX.SC), FE:summarize(EX.FE)};
-
-  function when(ts){ if(!ts) return "—"; const d=new Date(ts), now=new Date(); const days=Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000); return days<=0?"今日":days===1?"昨日":days<7?`${days}日前`:`${d.getMonth()+1}/${d.getDate()}`; }
-  function card(k){
-    const s=S[k], box=$("num"+k);
-    const nums=[[s.answered.toLocaleString(),"/"+s.total.toLocaleString(),"回答した問題"],[s.totalRuns+"回","","通しテスト"],[when(s.lastTs),"","最後に解いた日"]];
-    nums.forEach(([v,t,l])=>{ const d=el("div","num"); const B=el("b",null,v); if(t) B.append(el("small",null,t)); d.append(B,el("span",null,l)); box.append(d); });
-    $("bar"+k).style.width=(s.total?Math.min(100,s.answered/s.total*100):0)+"%";
-  }
-  card("SC"); card("FE");
-
-  function renderTable(k){
-    const ex=EX[k], s=S[k], box=$("tbl"); box.replaceChildren();
-    ex.groups.forEach(G=>{
-      if(G.title) box.append(el("div","grp",G.title));
-      G.s.forEach(([id,label])=>{
-        const row=el("div","row"); row.style.setProperty("--cols",G.secs.length);
-        row.append(el("div","lbl",label));
-        const cells=el("div","cells");
-        G.secs.forEach(sc=>{
-          const st=s.sets[id+"|"+sc]||{cnt:0,last:null};
-          const c=el("div","cell");
-          c.append(el("span","k",ex.sec[sc].name), el("span","cnt"+(st.cnt?"":" zero"), st.cnt+"回"));
-          if(st.last){ const r=st.last.ok/st.last.n; const p=el("span","pct "+(r>=.8?"g":r>=.6?"w":"b"),pc(r)); p.title=`直近の通し ${st.last.ok}/${st.last.n}`; c.append(p); }
-          cells.append(c);
-        });
-        row.append(cells); box.append(row);
-      });
-    });
-  }
-  function pick(k){ $("tSC").setAttribute("aria-selected",k==="SC"); $("tFE").setAttribute("aria-selected",k==="FE"); renderTable(k); try{ localStorage.setItem("kk-top-tab",k); }catch(e){} }
-  $("tSC").addEventListener("click",()=>pick("SC")); $("tFE").addEventListener("click",()=>pick("FE"));
-  let first="SC"; try{ first=localStorage.getItem("kk-top-tab")||"SC"; }catch(e){}
-  pick(first==="FE"?"FE":"SC");
-})();
-</script>
 </body>
 </html>
