@@ -58,7 +58,16 @@ td.n{font-family:var(--f-mono);text-align:right}
 .pill.lv-goal{background:var(--good-soft)}
 .pill.lv-pass{background:var(--warn-soft)}
 .pill.lv-bad{background:var(--bad-soft)}
-.logday{border-top:1px solid var(--line);padding-top:12px;margin-top:4px;scroll-margin-top:12px}
+.logday{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-bottom:8px;scroll-margin-top:12px}
+.daysum{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px}
+.daysum::-webkit-details-marker{display:none}
+.daysum::after{content:"▸";color:var(--muted);font-size:13px}
+.logday[open]>.daysum::after{content:"▾"}
+.daysum:hover{background:var(--sunk);border-radius:12px}
+.daycnt{font-weight:700;margin-left:auto}
+.logday>.loghead,.logday>.logruns{padding:0 12px}
+.logday>.logruns{padding-bottom:12px}
+.logday .logrun{background:var(--bg)}
 .loghead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .logdate{font-family:var(--f-display);font-weight:600;font-size:16px}
 .btn.small{padding:4px 10px;font-size:12px;margin-left:auto}
@@ -724,10 +733,12 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
       const shown=wrongOnly? list.filter(e=>!e.ok) : list;
       if(wrongOnly && !shown.length) return;
       const [y,m,d]=k.split("-").map(Number); const wd=WD[new Date(y,m-1,d).getDay()];
-      const sec=el("div","logday"); sec.id="day-"+k;
+      const sec=el("details","logday"); sec.id="day-"+k; if(wrongOnly) sec.open=true;
+      const ds=el("summary","daysum");
+      ds.append(el("span","logdate",`${m}月${d}日（${wd}）`), el("span","daycnt mono",`${list.length}問`));
+      sec.append(ds);
       const head=el("div","loghead");
-      head.append(el("span","logdate",`${m}月${d}日（${wd}）`));
-      const stat=el("span","small"); stat.append(`${list.length}問　`, el("span","pill "+lv(ok/list.length),`正答率 ${pc(ok/list.length)}`), `　ミス${list.length-ok}`);
+      const stat=el("span","small"); stat.append(el("span","pill "+lv(ok/list.length),`正答率 ${pc(ok/list.length)}`), `　ミス${list.length-ok}`);
       head.append(stat);
       const btn=el("button","btn ghost small","この日の間違いを解き直す"); btn.type="button";
       const wrongItems=[]; const seen=new Set();
