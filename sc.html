@@ -518,8 +518,17 @@ details.sharefold[open]{background:var(--surface)}
   </section>
 
   <section class="panel" id="backup">
-    <h2 style="font-size:15px">記録のバックアップ</h2>
-    <p class="muted small" style="margin:0">解答記録はこのブラウザの中に保存されます。別の端末やブラウザに移すときは、ファイルに書き出して、移した先で読み込んでください。</p>
+    <h2 style="font-size:15px">記録の引き継ぎ・バックアップ</h2>
+    <p class="muted small" style="margin:0">記録はこのブラウザに保存されます。携帯とパソコンの記録をまとめるときは、引き継ぎコードをコピーして、もう一方の端末で貼り付けてください。同じ解答は二重に数えません。</p>
+    <div class="resactions">
+      <button class="btn" id="tcCopy" type="button">引き継ぎコードをコピー</button>
+      <button class="btn ghost" id="tcOpen" type="button">コードを貼り付けて取り込む</button>
+    </div>
+    <div id="tcBox" hidden style="display:flex;flex-direction:column;gap:8px">
+      <textarea id="tcIn" rows="3" placeholder="別の端末でコピーした引き継ぎコードを貼り付け" style="font:inherit;font-size:12px;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);resize:vertical"></textarea>
+      <div class="resactions"><button class="btn" id="tcGo" type="button">取り込む</button></div>
+    </div>
+    <div class="small" id="tcMsg" role="status" style="color:var(--good);font-weight:700"></div>
     <div class="resactions">
       <button class="btn ghost" id="bkExport">記録を書き出す</button>
       <label class="btn ghost" style="cursor:pointer">記録を読み込む<input type="file" id="bkImport" accept="application/json" hidden></label>
@@ -971,17 +980,45 @@ details.sharefold[open]{background:var(--surface)}
     a.href=URL.createObjectURL(blob); a.download=`kakomon-knock-sc-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}.json`;
     document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   });
+  // 記録の統合：解いた時刻が同じ解答は同じものとみなし、重複して数えない
+  function mergeRec(inc){
+    let n=0, add=0;
+    for(const k in inc){ const r=inc[k]; if(!r||!Array.isArray(r.h)||!r.h.length) continue;
+      const cur=rec[k]; if(!cur||!cur.h||!cur.h.length){ rec[k]=r; n++; add+=r.h.length; continue; }
+      const seen=new Set(cur.h.map(x=>x[0])); const nw=r.h.filter(x=>!seen.has(x[0])); if(!nw.length) continue;
+      const hh=[...cur.h, ...nw].sort((x,y)=>x[0]-y[0]).slice(-20);
+      rec[k]={...cur, h:hh, last:hh[hh.length-1][2]?1:0, a:cur.a||r.a}; n++; add+=nw.length; }
+    saveLocal(); renderHome(); if(!$("vLog").hidden) renderLog();
+    return {n,add};
+  }
   $("bkImport").addEventListener("change",async e=>{
     const f=e.target.files[0]; if(!f) return;
-    try{
-      const d=JSON.parse(await f.text()); const inc=d.rec||d; let n=0;
-      for(const k in inc){ const r=inc[k]; if(!r||!Array.isArray(r.h)) continue;
-        const cur=rec[k]; if(!cur){ rec[k]=r; n++; continue; }
-        const seen=new Set(cur.h.map(h=>h[0])); const h=[...cur.h, ...r.h.filter(x=>!seen.has(x[0]))].sort((a,b)=>a[0]-b[0]).slice(-20);
-        rec[k]={...cur, h, last:h[h.length-1][2]?1:0, a:cur.a||r.a}; n++; }
-      saveLocal(); renderHome(); setStatus(`記録を読み込みました（${n}問分）。`);
-    }catch(err){ setStatus("読み込めませんでした。書き出したファイルを選んでください。"); }
+    try{ const d=JSON.parse(await f.text()); const r=mergeRec(d.rec||d); setStatus(r.add?`記録を読み込みました（新しい解答 ${r.add}件）。`:"新しい記録はありませんでした（すべて取り込み済み）。"); }
+    catch(err){ setStatus("読み込めませんでした。書き出したファイルを選んでください。"); }
     e.target.value="";
+  });
+  // ---------- 引き継ぎコード（gzip + base64url） ----------
+  const TCP="SCK1:";
+  async function gz(str){ const s=new Blob([str]).stream().pipeThrough(new CompressionStream("gzip")); return new Uint8Array(await new Response(s).arrayBuffer()); }
+  async function gunz(u8){ const s=new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip")); return await new Response(s).text(); }
+  const u8b64=u=>{ let bin=""; for(let i=0;i<u.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); };
+  const b64u8=s=>Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0));
+  const tcMsg=(t,bad)=>{ const m=$("tcMsg"); m.textContent=t; m.style.color=bad?"var(--bad)":"var(--good)"; clearTimeout(window.__tcT); window.__tcT=setTimeout(()=>m.textContent="",6000); };
+  $("tcCopy").addEventListener("click",async()=>{
+    const cnt=Object.values(rec).reduce((t,r)=>t+((r&&r.h)?r.h.length:0),0);
+    if(!cnt){ tcMsg("まだ記録がありません。",true); return; }
+    const code=TCP+u8b64(await gz(JSON.stringify(rec)));
+    try{ await navigator.clipboard.writeText(code); }catch(e){ const t=$("tcIn"); $("tcBox").hidden=false; t.value=code; t.select(); document.execCommand("copy"); }
+    tcMsg(`✓ コピーしました（解答${cnt}件）。LINEなどで自分に送り、もう一方の端末で「コードを貼り付けて取り込む」に貼り付けてください`);
+  });
+  $("tcOpen").addEventListener("click",()=>{ $("tcBox").hidden=false; $("tcIn").focus(); });
+  $("tcGo").addEventListener("click",async()=>{
+    const mm=$("tcIn").value.replace(/\s+/g,"").match(/SCK1:([A-Za-z0-9_-]+)/);
+    if(!mm){ tcMsg("引き継ぎコードが見つかりません。コピーしたコードをそのまま貼り付けてください。",true); return; }
+    try{ const inc=JSON.parse(await gunz(b64u8(mm[1]))); const r=mergeRec(inc);
+      $("tcIn").value=""; $("tcBox").hidden=true;
+      tcMsg(r.add?`✓ 取り込みました（新しい解答 ${r.add}件、重複は除外）`:"新しい記録はありませんでした（すべて取り込み済み）"); }
+    catch(e){ tcMsg("コードが途中で切れているようです。もう一度コピーして貼り付けてください。",true); }
   });
   // ---------- share ----------
   const DAY=864e5;
