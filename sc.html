@@ -394,6 +394,15 @@ details.sharefold[open]{background:var(--surface)}
 .sharebar .shname{display:inline-flex;align-items:center;gap:6px;font-size:12px}
 .sharebar input{font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);width:9em}
 #shMsg{color:var(--good);font-weight:700}
+.duptable th{white-space:nowrap}
+.duptable td.n,.duptable td:last-child{white-space:nowrap;text-align:center}
+#dupPanel>summary{flex-wrap:nowrap}
+#dupPanel>summary h2,#dupSum{white-space:nowrap}
+.ylbl{align-items:center;text-align:center}
+.yhead span:first-child{text-align:center}
+.ylbl b{font-size:26px}
+.ylbl span{font-size:12px}
+@media (max-width:640px){.ylbl{justify-content:center!important}.ylbl b{font-size:21px!important}}
 .toplink{display:inline-block;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;margin:0 0 8px;padding:2px 0}.toplink:hover{color:var(--accent)}
 </style>
 <style>[hidden]{display:none!important}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px)}</style>
@@ -810,7 +819,7 @@ details.sharefold[open]{background:var(--surface)}
     if(DUP.length){
       const cnt=DUP.reduce((t,g)=>t+g.m.length,0);
       $("dupSum").textContent=`${DUP.length}組（延べ${cnt}問）`;
-      const tb2=el("table","duptable"); const h2=el("tr"); ["テーマ","回数","出題回","あなたの結果"].forEach(x=>h2.append(el("th",null,x))); const th2=el("thead"); th2.append(h2); tb2.append(th2);
+      const tb2=el("table","duptable"); const h2=el("tr"); ["テーマ","回数","出題回","結果"].forEach(x=>h2.append(el("th",null,x))); const th2=el("thead"); th2.append(h2); tb2.append(th2);
       const bd=el("tbody");
       DUP.slice().sort((a,b)=>b.m.length-a.m.length).forEach(g=>{
         const tr=el("tr");
