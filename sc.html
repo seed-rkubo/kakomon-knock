@@ -379,6 +379,17 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   .yrow{grid-template-columns:38px minmax(0,1fr) minmax(0,1fr);gap:6px}
   .ynote{padding-left:44px}
 }
+#homeSummary{display:flex;gap:16px;align-items:baseline}
+#homeSummary b{font-size:15px;color:var(--fg)}
+details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary h2{display:flex;align-items:center;gap:8px}
+details.fold>summary h2::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex:none}
+details.fold[open]>summary h2::before{transform:rotate(45deg)}
+details.fold[open]>summary{margin-bottom:10px}
+details.sharefold{border-color:var(--accent);background:var(--accent-soft)}
+details.sharefold>summary h2{color:var(--accent)}
+details.sharefold[open]{background:var(--surface)}
 .toplink{display:inline-block;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;margin:0 0 8px;padding:2px 0}.toplink:hover{color:var(--accent)}
 </style>
 <style>[hidden]{display:none!important}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px)}</style>
@@ -398,7 +409,6 @@ footer{border-top:1px solid var(--line);padding-top:16px}
     </div>
     <div class="tabs" role="tablist">
       <button role="tab" id="tabPlay" aria-selected="true">出題</button>
-      <button role="tab" id="tabStats" aria-selected="false">成績</button>
       <button role="tab" id="tabLog" aria-selected="false">履歴</button>
     </div>
   </header>
@@ -420,6 +430,15 @@ footer{border-top:1px solid var(--line);padding-top:16px}
       <div class="hhead"><h2>年度ごとに通しで解く</h2><span class="muted small">％・点数は直近の結果、<span class="rc rc-legend">◯回</span>は最後まで解いた回数</span></div>
       <div class="sessions" id="sessions"></div>
     </div>
+    <details class="panel fold" id="dupPanel">
+      <summary><h2>頻出問題一覧</h2><span class="muted small" id="dupSum"></span></summary>
+      <p class="muted small" style="margin:0">複数の年度で出題された問題です。テーマ名を押すと、その問題だけをまとめて解けます。</p>
+      <div id="dupList"></div>
+    </details>
+    <details class="panel fold" id="weakPanel">
+      <summary><h2>よく間違える問題</h2></summary>
+      <div id="weak"></div>
+    </details>
   </section>
 
   <section id="vQuiz" class="panel" hidden>
@@ -457,21 +476,25 @@ footer{border-top:1px solid var(--line);padding-top:16px}
     <ul class="reslist" id="resList"></ul>
   </section>
 
-  <section id="vStats" hidden style="display:flex;flex-direction:column;gap:16px">
-    <div class="tiles" id="tiles"></div>
-    <div class="panel">
-      <h2>回ごとの成績</h2>
-      <div class="scroll"><table id="stTable"></table></div>
+  <div hidden id="vStats"><div id="tiles"></div><table id="stTable"></table></div>
+
+  <details class="panel fold sharefold" id="sharePanel">
+    <summary><h2>進み具合を共有する</h2><span class="muted small">リンクを作って送る</span></summary>
+    <p class="muted small" style="margin:0">いつ・どの問題を解いて何％だったか、回答数・学習日数・通しテストの成績をまとめたリンクを作ります（直近40回分。1問ごとの解答内容は含みません）。</p>
+    <label class="small" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">表示名 <input id="shName" maxlength="20" placeholder="例：くぼ" style="font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;flex:1;max-width:240px"></label>
+    <div class="resactions">
+      <button class="btn" id="shMake">共有リンクを作る</button>
     </div>
-    <div class="panel">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><h2>繰り返し出題された問題</h2><span class="muted small" id="dupSum"></span></div>
-      <div id="dupList"></div>
+    <div id="shOut" hidden style="display:flex;flex-direction:column;gap:10px">
+      <div id="shPreview"></div>
+      <textarea id="shText" readonly rows="6" style="font:inherit;font-size:13px;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);resize:vertical"></textarea>
+      <div class="resactions">
+        <button class="btn" id="shCopy">文章とリンクをコピー</button>
+        <button class="btn ghost" id="shCopyUrl">リンクだけコピー</button>
+        <button class="btn ghost" id="shNative" hidden>LINEなどで送る</button>
+      </div>
     </div>
-    <div class="panel">
-      <h2>よく間違える問題</h2>
-      <div id="weak"></div>
-    </div>
-  </section>
+  </details>
 
   <section id="vLog" hidden class="panel">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
@@ -487,26 +510,8 @@ footer{border-top:1px solid var(--line);padding-top:16px}
     <div class="resactions"><button class="btn" id="shMine">自分も解いてみる</button></div>
   </section>
 
-  <section class="panel" id="sharePanel">
-    <h2>進み具合を共有</h2>
-    <p class="muted small" style="margin:0">いつ・どの問題を解いて何％だったか、回答数・学習日数・通しテストの成績をまとめたリンクを作ります（直近40回分。1問ごとの解答内容は含みません）。</p>
-    <label class="small" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">表示名 <input id="shName" maxlength="20" placeholder="例：くぼ" style="font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;flex:1;max-width:240px"></label>
-    <div class="resactions">
-      <button class="btn" id="shMake">共有リンクを作る</button>
-    </div>
-    <div id="shOut" hidden style="display:flex;flex-direction:column;gap:10px">
-      <div id="shPreview"></div>
-      <textarea id="shText" readonly rows="6" style="font:inherit;font-size:13px;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);resize:vertical"></textarea>
-      <div class="resactions">
-        <button class="btn" id="shCopy">文章とリンクをコピー</button>
-        <button class="btn ghost" id="shCopyUrl">リンクだけコピー</button>
-        <button class="btn ghost" id="shNative" hidden>LINEなどで送る</button>
-      </div>
-    </div>
-  </section>
-
   <section class="panel" id="backup">
-    <h2>記録のバックアップ</h2>
+    <h2 style="font-size:15px">記録のバックアップ</h2>
     <p class="muted small" style="margin:0">解答記録はこのブラウザの中に保存されます。別の端末やブラウザに移すときは、ファイルに書き出して、移した先で読み込んでください。</p>
     <div class="resactions">
       <button class="btn ghost" id="bkExport">記録を書き出す</button>
@@ -550,7 +555,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   const cache = {};       // "id_sec" -> {qs:[{n,a,img}], ex:{n:text}}
 
   let DUP=[], DUPOF={};
-  fetch("dup.json").then(r=>r.json()).then(d=>{ DUP=d.groups||[]; DUP.forEach((g,gi)=>g.m.forEach(k=>{ DUPOF[k]=gi; })); if(!$("vStats").hidden) renderStats(); if(Q&&!$("vQuiz").hidden) renderDup(); }).catch(()=>{});
+  fetch("dup.json").then(r=>r.json()).then(d=>{ DUP=d.groups||[]; DUP.forEach((g,gi)=>g.m.forEach(k=>{ DUPOF[k]=gi; })); if(!$("vHome").hidden) renderStats(); if(Q&&!$("vQuiz").hidden) renderDup(); }).catch(()=>{});
   const pk=k=>{ const [s,sec,n]=k.split("_"); return {s,sec,n:Number(n)}; };
   const shortLabel=s=>SID[s]?SID[s].label.replace("年度 ","年").replace("令和","R").replace("平成","H"):s;
   function groupDone(k){ const gi=DUPOF[k]; if(gi==null) return !!(rec[k]&&rec[k].h&&rec[k].h.length); return DUP[gi].m.some(x=>rec[x]&&rec[x].h&&rec[x].h.length); }
@@ -641,7 +646,9 @@ footer{border-top:1px solid var(--line);padding-top:16px}
       });
       yr.append(rows); box.append(yr);
     });
-    $("homeSummary").textContent = `回答済み ${ans} / ${tot} 問（${pc(tot?ans/tot:0)}）`;
+    { const all_=[]; Object.values(rec).forEach(r=>(r.h||[]).forEach(x=>all_.push(x))); all_.sort((a,b)=>b[0]-a[0]); const r50=all_.slice(0,50); const hs=$("homeSummary"); hs.replaceChildren();
+      const a1=el("span"); a1.append(el("b","mono",String(ans)), `/${tot}問 回答`); hs.append(a1);
+      if(r50.length){ const v=r50.filter(x=>x[2]).length/r50.length; const a2=el("span"); a2.append(`直近${r50.length}回答 `, el("b","mono "+lv(v),pc(v))); hs.append(a2); } }
     $("homeBar").style.width=(tot?ans/tot*100:0)+"%";
     const wrongs=Object.values(rec).filter(r=>r.h&&r.h.length&&!r.last).length;
     const LR=lastRun();
@@ -871,6 +878,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
         if(!groups[g]){ groups[g]=[]; order.push(g); }
         groups[g].push(e);
       });
+      order.sort((x,y)=>groups[y][groups[y].length-1].ts-groups[x][groups[x].length-1].ts);
       const wrap=el("div","logruns");
       order.forEach(g=>{
         const items=groups[g]; const okN=items.filter(e=>e.ok).length;
@@ -910,16 +918,15 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   }
 
   function show(v){
-    $("vHome").hidden = v!=="home"; $("vQuiz").hidden = v!=="quiz"; $("vStats").hidden = v!=="stats"; $("vLog").hidden = v!=="log"; $("vResult").hidden = v!=="result";
-    $("tabPlay").setAttribute("aria-selected", String(v==="home"||v==="quiz"||v==="result")); $("tabStats").setAttribute("aria-selected", String(v==="stats")); $("tabLog").setAttribute("aria-selected", String(v==="log"));
-    $("sharePanel").hidden = v!=="stats"; $("backup").hidden = v!=="stats";
-    if(v==="home") renderHome(); if(v==="stats") renderStats(); if(v==="log") renderLog();
+    $("vHome").hidden = v!=="home"; $("vQuiz").hidden = v!=="quiz"; $("vLog").hidden = v!=="log"; $("vResult").hidden = v!=="result";
+    $("tabPlay").setAttribute("aria-selected", String(v==="home"||v==="quiz"||v==="result")); $("tabLog").setAttribute("aria-selected", String(v==="log"));
+    $("sharePanel").hidden = v!=="log"; $("backup").hidden = v!=="log";
+    if(v==="home"){ renderHome(); renderStats(); } if(v==="log") renderLog();
   }
   $("tabLog").addEventListener("click",()=>show("log"));
   $("logWrongOnly").addEventListener("change",renderLog);
 
   $("tabPlay").addEventListener("click",()=>show(Q&&!$("vQuiz").hidden?"quiz":"home"));
-  $("tabStats").addEventListener("click",()=>show("stats"));
   $("qClose").addEventListener("click",finish);
   $("resHome").addEventListener("click",()=>show("home"));
   $("qImg").addEventListener("click",()=>$("qImg").classList.toggle("zoom"));
