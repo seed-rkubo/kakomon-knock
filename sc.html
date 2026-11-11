@@ -390,6 +390,10 @@ details.fold[open]>summary{margin-bottom:10px}
 details.sharefold{border-color:var(--accent);background:var(--accent-soft)}
 details.sharefold>summary h2{color:var(--accent)}
 details.sharefold[open]{background:var(--surface)}
+.sharebar{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin-bottom:12px}
+.sharebar .shname{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+.sharebar input{font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);width:9em}
+#shMsg{color:var(--good);font-weight:700}
 .toplink{display:inline-block;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;margin:0 0 8px;padding:2px 0}.toplink:hover{color:var(--accent)}
 </style>
 <style>[hidden]{display:none!important}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px)}</style>
@@ -478,23 +482,12 @@ details.sharefold[open]{background:var(--surface)}
 
   <div hidden id="vStats"><div id="tiles"></div><table id="stTable"></table></div>
 
-  <details class="panel fold sharefold" id="sharePanel">
-    <summary><h2>進み具合を共有する</h2><span class="muted small">リンクを作って送る</span></summary>
-    <p class="muted small" style="margin:0">いつ・どの問題を解いて何％だったか、回答数・学習日数・通しテストの成績をまとめたリンクを作ります（直近40回分。1問ごとの解答内容は含みません）。</p>
-    <label class="small" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">表示名 <input id="shName" maxlength="20" placeholder="例：くぼ" style="font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;flex:1;max-width:240px"></label>
-    <div class="resactions">
-      <button class="btn" id="shMake">共有リンクを作る</button>
-    </div>
-    <div id="shOut" hidden style="display:flex;flex-direction:column;gap:10px">
-      <div id="shPreview"></div>
-      <textarea id="shText" readonly rows="6" style="font:inherit;font-size:13px;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);resize:vertical"></textarea>
-      <div class="resactions">
-        <button class="btn" id="shCopy">文章とリンクをコピー</button>
-        <button class="btn ghost" id="shCopyUrl">リンクだけコピー</button>
-        <button class="btn ghost" id="shNative" hidden>LINEなどで送る</button>
-      </div>
-    </div>
-  </details>
+  <div class="sharebar" id="sharePanel">
+    <button class="btn" id="shMake" type="button">進み具合を共有</button>
+    <label class="small muted shname">名前 <input id="shName" maxlength="20" placeholder="例：くぼ"></label>
+    <span class="small" id="shMsg" role="status"></span>
+    <textarea id="shText" readonly hidden></textarea>
+  </div>
 
   <section id="vLog" hidden class="panel">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
@@ -1017,29 +1010,24 @@ details.sharefold[open]{background:var(--surface)}
     return c;
   }
   function summaryText(p,url){
-    const logs=(p.r||[]).slice(0,10).map(r=>`${dstr(r[0])} ${runName(r).replace(/年度 /,"年度")} ${r[4]}問 ${pc(r[4]?r[5]/r[4]:0)}`);
-    const runs=p.f.map(([si,ci,ok,n])=>`${shortLabel(SESSIONS[si].id)} ${SEC[["am1","am2"][ci]].name} ${pc(ok/n)}`);
-    return [`【SC過去問ノック】${p.nm?p.nm+"さんの":""}進み具合（${dstr(p.t)}時点）`,
-      `回答済み ${p.d}/${p.tot}問（${pc(p.tot?p.d/p.tot:0)}）・学習 ${p.dy}日・連続 ${p.st}日`,
-      ...(logs.length? ["▼解いた記録", ...logs, ...(p.r.length>10?[`ほか${p.r.length-10}件はリンク先で`]:[])] : []),
-      runs.length? `通しテスト ${runs.length}回：`+runs.slice(0,6).join("、")+(runs.length>6?` ほか${runs.length-6}回`:"") : "通しテストはまだ",
+    const recent=(p.r||[]).slice(0,3).map(r=>`${runName(r).replace(/年度 /,"年度").replace(/（前回間違えた問題）/,"（解き直し）")} ${pc(r[4]?r[5]/r[4]:0)}`);
+    return [`【SC過去問ノック】${p.nm?p.nm+"さん ":""}${dstr(p.t)}時点`,
+      `回答 ${p.d}/${p.tot}問・学習${p.dy}日`,
+      ...(recent.length?["最近："+recent.join("、")]:[]),
       url].join("\n");
   }
   let shareUrl="";
   try{ $("shName").value=localStorage.getItem("sc-dojo-name")||""; }catch(e){}
-  $("shMake").addEventListener("click",()=>{
-    const name=$("shName").value; try{ localStorage.setItem("sc-dojo-name",name); }catch(e){}
+  $("shMake").addEventListener("click",async()=>{
+    const name=$("shName").value.trim(); try{ localStorage.setItem("sc-dojo-name",name); }catch(e){}
     const p=buildSummary(name);
     shareUrl=location.origin+location.pathname+"#p="+b64e(JSON.stringify(p));
-    $("shPreview").replaceChildren(summaryCard(p));
-    $("shText").value=summaryText(p,shareUrl);
-    $("shNative").hidden=!navigator.share;
-    $("shOut").hidden=false;
+    const text=summaryText(p,shareUrl);
+    const msg=t=>{ $("shMsg").textContent=t; clearTimeout(window.__shT); window.__shT=setTimeout(()=>$("shMsg").textContent="",4000); };
+    if(navigator.share && matchMedia("(pointer:coarse)").matches){ try{ await navigator.share({text}); return; }catch(e){ if(e&&e.name==="AbortError") return; } }
+    try{ await navigator.clipboard.writeText(text); }catch(e){ const t=$("shText"); t.hidden=false; t.value=text; t.select(); document.execCommand("copy"); t.hidden=true; }
+    msg("✓ コピーしました。LINEやメールに貼り付けてください");
   });
-  async function copy(t,msg){ try{ await navigator.clipboard.writeText(t); setStatus(msg); }catch(e){ $("shText").select(); document.execCommand("copy"); setStatus(msg); } setTimeout(()=>{ if($("status").textContent===msg) setStatus(""); },3000); }
-  $("shCopy").addEventListener("click",()=>copy($("shText").value,"文章とリンクをコピーしました。"));
-  $("shCopyUrl").addEventListener("click",()=>copy(shareUrl,"リンクをコピーしました。"));
-  $("shNative").addEventListener("click",()=>{ navigator.share({title:"SC過去問ノックの進み具合", text:$("shText").value}).catch(()=>{}); });
   function showShared(){
     const m=location.hash.match(/^#p=([A-Za-z0-9_-]+)/); if(!m) return false;
     let p; try{ p=JSON.parse(b64d(m[1])); if(!p||p.v!==1) throw 0; }catch(e){ return false; }
