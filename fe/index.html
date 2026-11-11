@@ -345,6 +345,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
   .qbtn.primary{flex-wrap:wrap}
   .qbtn.primary::after{display:none}
 }
+.toplink{display:inline-block;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;margin:0 0 8px;padding:2px 0}.toplink:hover{color:var(--accent)}
 </style>
 <style>[hidden]{display:none!important}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px)}</style>
 </head>
@@ -352,6 +353,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
 
 
 <div class="wrap">
+  <a class="toplink" href="../" aria-label="トップへ戻る">‹ トップ</a>
   <header>
     <div class="brand">
       <div class="brand-mark" aria-hidden="true">FE</div>
@@ -559,8 +561,8 @@ footer{border-top:1px solid var(--line);padding-top:16px}
     for(let i=1;i<=n;i++){ const r=rec[key(id,sec,i)]; if(r&&r.h&&r.h.length){ done++; if(r.last) ok++; const t=r.h[r.h.length-1][0]; if(t>lastTs) lastTs=t;
       r.h.forEach(h=>{ if(!h[3]) return; const g=runs[h[3]]||(runs[h[3]]={q:{},ts:0}); g.q[i]=h[2]; if(h[0]>g.ts) g.ts=h[0]; }); } }
     let full=null; // 最後に全問解き切ったテスト
-    Object.values(runs).forEach(g=>{ const k=Object.keys(g.q); if(k.length===n && (!full||g.ts>full.ts)) full={ts:g.ts, ok:k.filter(x=>g.q[x]).length, n}; });
-    return {n,done,ok,lastTs,full};
+    let cnt=0; Object.values(runs).forEach(g=>{ const k=Object.keys(g.q); if(k.length===n){ cnt++; if(!full||g.ts>full.ts) full={ts:g.ts, ok:k.filter(x=>g.q[x]).length, n}; } });
+    return {n,done,ok,lastTs,full,cnt};
   }
   function renderHome(){
     const box=$("sessions"); box.replaceChildren();
@@ -584,7 +586,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
         const fmtDay = ts=>{ const d=new Date(ts), now=new Date(); const days=Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000); const md=`${d.getMonth()+1}/${d.getDate()}`; return days===0?"今日":days===1?"昨日":days<7?`${days}日前（${md}）`:(d.getFullYear()!==now.getFullYear()?`${d.getFullYear()}/`:"")+md; };
         const fwhen = F ? fmtDay(F.ts) : "";
         if(!F) m.hidden=true;
-        b.append(t,m,el("div","s", !avail? "準備中" : F? `${F.ok}/${F.n}・${fwhen}` : (st.done? `途中 ${st.done}/${st.n}問` : "未実施")));
+        b.append(t,m,el("div","s", !avail? "準備中" : F? `通し${st.cnt}回・直近 ${F.ok}/${F.n}・${fwhen}` : (st.done? `途中 ${st.done}/${st.n}問` : "未実施")));
         if(avail) b.addEventListener("click",()=>startSet(s.id,sec));
         else b.style.opacity=.5;
         row.append(b);
