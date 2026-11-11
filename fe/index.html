@@ -350,7 +350,9 @@ footer{border-top:1px solid var(--line);padding-top:16px}
 .set .t .big{margin-right:auto;min-width:4ch;text-align:left}
 .set .t .rc{min-width:3.8em;text-align:center;box-sizing:border-box}
 .set .s.done .sc{min-width:5ch;text-align:right}
-@media (min-width:641px){.set .s.done{width:10.5em;flex:none}.set .s.done .sw{flex:1;overflow:hidden;text-overflow:ellipsis}}
+.set .s.done .sw{min-width:5ch;text-align:right;font-family:var(--f-mono)}
+@media (min-width:641px){.set .s.done{flex:none}}
+@media (max-width:640px){.set .s.done{justify-content:space-between}.set .s.done .sc{min-width:0;text-align:left}}
 .set .s.done .sc{color:var(--fg);font-weight:700}
 .set .s.done .sw{color:var(--muted);font-family:var(--f-body)}
 .rc{margin-left:auto;font-family:var(--f-mono);font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 8px;line-height:1.6;white-space:nowrap}
@@ -594,7 +596,7 @@ footer{border-top:1px solid var(--line);padding-top:16px}
         const m=el("div","meter"); if(F){ const g=el("i"); g.style.width=(F.ok/F.n*100)+"%"; g.style.background="var(--good)";
         const r_=el("i"); r_.style.width=((F.n-F.ok)/F.n*100)+"%"; r_.style.background="var(--bad)"; m.append(g,r_); }
         const fmtDay = ts=>{ const d=new Date(ts), now=new Date(); const days=Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate())-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000); const md=`${d.getMonth()+1}/${d.getDate()}`; return days===0?"今日":days===1?"昨日":days<7?`${days}日前（${md}）`:(d.getFullYear()!==now.getFullYear()?`${d.getFullYear()}/`:"")+md; };
-        const fwhen = F ? fmtDay(F.ts) : "";
+        const fwhen = F ? (d=>`${d.getMonth()+1}/${d.getDate()}`)(new Date(F.ts)) : "";
         if(!F) m.hidden=true;
         const sline=el("div","s");
         if(!avail) sline.textContent="準備中";
