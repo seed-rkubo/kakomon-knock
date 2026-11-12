@@ -420,8 +420,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     <div class="resactions"><button class="btn" id="shMine">自分も解いてみる</button></div>
   </section>
 
-  <section class="panel" id="backup">
-    <h2 style="font-size:15px">記録の引き継ぎ・バックアップ</h2>
+  <details class="panel fold" id="backup">
+    <summary><h2 style="font-size:15px">記録の引き継ぎ・バックアップ</h2><span class="muted small">押すと開きます</span></summary>
     <p class="muted small" style="margin:0">記録はこのブラウザの中だけに保存されます。携帯とパソコンの記録をまとめるときは、①で送って②で受け取ります。同じ解答は二重に数えません。</p>
     <div class="bkblk">
       <div class="bkhd"><span class="bkno">1</span>別の端末に送る</div>
@@ -451,7 +451,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
       </div>
       <div class="bkmsg" id="bkMsg" role="status"></div>
     </div>
-  </section>
+  </details>
 
   <footer>
     問題は IPA が公開している過去問題（問題冊子・解答例）を使用しています。各問題の出典は問題の下に記載しています。解説はこのサイト用に独自に作成したもので、IPA の公式解説ではありません。
@@ -858,7 +858,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   function show(v){
     $("vHome").hidden = v!=="home"; $("vQuiz").hidden = v!=="quiz"; $("vLog").hidden = v!=="log"; $("vResult").hidden = v!=="result";
     $("tabPlay").setAttribute("aria-selected", String(v==="home"||v==="quiz"||v==="result")); $("tabLog").setAttribute("aria-selected", String(v==="log"));
-    $("sharePanel").hidden = v!=="log"; $("backup").hidden = v!=="log";
+    $("sharePanel").hidden = v!=="log"; $("backup").hidden = v!=="log"; if(v!=="log") $("backup").open=false;
     if(v==="home"){ renderHome(); renderLists(); } if(v==="log") renderLog();
   }
   $("tabLog").addEventListener("click",()=>show("log"));
