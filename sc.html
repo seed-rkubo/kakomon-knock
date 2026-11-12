@@ -148,6 +148,9 @@ header{display:flex;justify-content:space-between;flex-wrap:wrap;align-items:cen
 .status{font-size:13px;padding:8px 12px;background:var(--warn-soft);color:var(--warn);border-radius:10px;font-weight:500}
 .pbar{background:var(--sunk);overflow:hidden;height:6px;border-radius:3px}
 .quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.quick6{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto;grid-auto-flow:column;gap:10px;margin-top:10px}
+.quick6 em{font-style:normal}
+.q6hd{display:none}
 .qbtn{display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-width:0;position:relative;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);gap:4px;transition:border-color .15s,transform .15s}
 .qbtn b{font-size:14px;font-weight:700;line-height:1.4}
 .qbtn span{color:var(--muted);font-size:12px;line-height:1.5}
@@ -201,6 +204,11 @@ footer{font-size:12px;color:var(--muted);line-height:1.7;border-top:1px solid va
 .set .t{min-width:0}
 .set.untried::after{display:none}
 .quick{grid-template-columns:repeat(2,minmax(0,1fr))}
+.quick6{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;grid-auto-flow:row;gap:8px}
+.quick6 em{display:none}
+.q6hd{display:contents}
+.q6hd span{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-align:center;margin-bottom:-4px}
+.quick6 .qbtn{padding:11px 12px}
 .panel{padding:18px}
 .nav{margin:0 -18px -18px;padding-inline:18px}
 header{flex-direction:column;align-items:stretch}
@@ -318,10 +326,15 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
       <div id="homeSummary"></div>
       <div class="quick">
         <button class="qbtn primary" id="mWrong" type="button"><b>前回間違えた問題だけ</b><span id="mWrongSub"></span></button>
-        <button class="qbtn" id="mRand1" type="button"><b>午前I ランダム30問</b><span>全年度からランダムに出題</span></button>
-        <button class="qbtn" id="mRand2" type="button"><b>午前II ランダム30問</b><span>全年度からランダムに出題</span></button>
-        <button class="qbtn" id="mNew" type="button"><b>未回答から10問</b><span>まだ解いていない問題</span></button>
-        <button class="qbtn" id="mDup" type="button"><b>頻出問題から10問</b><span>複数の年度で出た問題</span></button>
+      </div>
+      <div class="quick6">
+        <div class="q6hd"><span>午前I</span><span>午前II</span></div>
+        <button class="qbtn" id="mRand1" type="button"><b><em>午前I </em>ランダム30問</b><span>全年度から出題</span></button>
+        <button class="qbtn" id="mRand2" type="button"><b><em>午前II </em>ランダム30問</b><span>全年度から出題</span></button>
+        <button class="qbtn" id="mNew1" type="button"><b><em>午前I </em>未回答から10問</b><span id="mNew1Sub">まだ解いていない問題</span></button>
+        <button class="qbtn" id="mNew2" type="button"><b><em>午前II </em>未回答から10問</b><span id="mNew2Sub">まだ解いていない問題</span></button>
+        <button class="qbtn" id="mDup1" type="button"><b><em>午前I </em>頻出から10問</b><span id="mDup1Sub">複数の年度で出た問題</span></button>
+        <button class="qbtn" id="mDup2" type="button"><b><em>午前II </em>頻出から10問</b><span id="mDup2Sub">複数の年度で出た問題</span></button>
       </div>
     </div>
     <div class="panel">
@@ -705,7 +718,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
 
   // ---------- stats ----------
   // 出題タブ下部の一覧（頻出問題・よく間違える問題）
-  function renderLists(){
+  function renderLists(){ quickCounts();
     const all=Object.values(rec).filter(r=>r.h&&r.h.length);
     const weak=all.map(r=>({r, miss:r.h.filter(h=>!h[2]).length, n:r.h.length})).filter(x=>x.miss>0).sort((a,b)=>b.miss-a.miss || (b.r.last?0:1)-(a.r.last?0:1)).slice(0,15);
     const dl=$("dupList"); dl.replaceChildren();
@@ -846,8 +859,16 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   $("mWrong").addEventListener("click",()=>{ const LR=lastRun(); if(LR&&LR.items.length) openQuiz(`${LR.name.replace(/（解き直し）$/,"")} の間違い`, LR.items); });
   $("mRand1").addEventListener("click",()=>openQuiz("午前I ランダム30問", shuffle(availList("am1")).slice(0,30)));
   $("mRand2").addEventListener("click",()=>openQuiz("午前II ランダム30問", shuffle(availList("am2")).slice(0,30)));
-  $("mDup").addEventListener("click",()=>{ const pick=shuffle(DUP.slice()).slice(0,10).map(g=>pk(g.m[0])); openQuiz("頻出問題", pick); });
-  $("mNew").addEventListener("click",()=>openQuiz("未回答から", shuffle(availList().filter(x=>!groupDone(key(x.s,x.sec,x.n)))).slice(0,10)));
+  // 頻出・未回答は午前I／午前IIごと（両方に出た頻出問題は、その区分の回から出題）
+  const dupOf=sec=>DUP.map(g=>g.m.find(k=>k.split("_")[1]===sec)).filter(Boolean);
+  const newOf=sec=>availList(sec).filter(x=>!groupDone(key(x.s,x.sec,x.n)));
+  ["am1","am2"].forEach((sec,ci)=>{ const nm=SEC[sec].name, i=ci+1;
+    $("mDup"+i).addEventListener("click",()=>openQuiz(`${nm} 頻出問題`, shuffle(dupOf(sec)).slice(0,10).map(pk)));
+    $("mNew"+i).addEventListener("click",()=>openQuiz(`${nm} 未回答から`, shuffle(newOf(sec)).slice(0,10)));
+  });
+  function quickCounts(){ ["am1","am2"].forEach((sec,ci)=>{ const i=ci+1, nn=newOf(sec).length, nd=dupOf(sec).length;
+    $("mNew"+i+"Sub").textContent=`残り${nn}問`; $("mNew"+i).disabled=!nn;
+    $("mDup"+i+"Sub").textContent=`${nd}テーマから出題`; $("mDup"+i).disabled=!nd; }); }
   document.addEventListener("keydown",e=>{
     if($("vQuiz").hidden) return;
     const i="1234".indexOf(e.key); if(i>=0){ const b=$("choices").children[i]; if(b&&!b.disabled) b.click(); }
