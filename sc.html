@@ -64,7 +64,11 @@ td.n{font-family:var(--f-mono);text-align:right}
 .daysum::after{content:"▸";color:var(--muted);font-size:13px}
 .logday[open]>.daysum::after{content:"▾"}
 .daysum:hover{background:var(--sunk);border-radius:12px}
-.daycnt{font-weight:700;margin-left:auto}
+.daycnt{display:inline-flex;align-items:baseline;gap:4px;font-size:13px;color:var(--muted)}
+.daycnt b{display:inline-block;min-width:3ch;text-align:right;font-size:15px;color:var(--fg)}
+.daycnt small{font-size:12px;font-weight:700}
+.daycnt.zero b{color:var(--muted);font-weight:500}
+.logdate{margin-right:auto}
 .logday>.loghead,.logday>.logruns{padding:0 12px}
 .logday>.logruns{padding-bottom:12px}
 .logday .logrun{background:var(--bg)}
@@ -244,8 +248,11 @@ header{flex-direction:column;align-items:stretch}
 .yrow{grid-template-columns:38px minmax(0,1fr) minmax(0,1fr);gap:6px}
 .ynote{padding-left:44px}
 }
-#homeSummary{display:flex;gap:16px;align-items:baseline}
-#homeSummary b{font-size:15px;color:var(--fg)}
+#homeRecent b{font-size:15px}
+#homeSummary{display:grid;grid-template-columns:auto auto 1fr;gap:4px 12px;align-items:center;font-size:13px;color:var(--muted)}
+#homeSummary .lb{font-weight:700;color:var(--fg)}
+#homeSummary .ct b{display:inline-block;min-width:4ch;text-align:right;font-size:15px;color:var(--fg)}
+#homeSummary .ct{white-space:nowrap}
 details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
 details.fold>summary::-webkit-details-marker{display:none}
 details.fold>summary h2{display:flex;align-items:center;gap:8px}
@@ -303,8 +310,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
 
   <section id="vHome" class="stack">
     <div class="panel">
-      <div class="hhead"><h2>すぐに解く</h2><span class="muted small" id="homeSummary"></span></div>
-      <div class="pbar" aria-hidden="true"><i id="homeBar"></i></div>
+      <div class="hhead"><h2>すぐに解く</h2><span class="muted small" id="homeRecent"></span></div>
+      <div id="homeSummary"></div>
       <div class="quick">
         <button class="qbtn primary" id="mWrong" type="button"><b>前回間違えた問題だけ</b><span id="mWrongSub"></span></button>
         <button class="qbtn" id="mRand1" type="button"><b>午前I ランダム30問</b><span>全年度からランダムに出題</span></button>
@@ -513,7 +520,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   function renderHome(){
     const box=$("sessions"); box.replaceChildren();
     const hd=el("div","yhead"); hd.append(el("span",null,"年度"), el("span"), el("span",null,"午前I"), el("span",null,"午前II")); box.append(hd);
-    let tot=0, ans=0;
+    const tot={am1:0,am2:0}, ans={am1:0,am2:0};
     // 年度ごとにまとめる（秋→10月→春の順）
     const years=[]; const ymap={};
     SESSIONS.forEach(s=>{ const y=+s.id.slice(0,4); if(!ymap[y]){ ymap[y]={y,list:[]}; years.push(ymap[y]); } ymap[y].list.push(s); });
@@ -530,7 +537,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
         const row=el("div","yrow");
         const bd=el("span","ss ss-"+k, k==="h"?"春":k==="a"?"秋":"10月"); bd.title=s.label; row.append(bd);
       ["am1","am2"].forEach(sec=>{
-          const st=setStats(s.id,sec); tot+=st.n; ans+=st.done;
+          const st=setStats(s.id,sec); tot[sec]+=st.n; ans[sec]+=st.done;
           const avail = AVAILABLE[s.id] && AVAILABLE[s.id][sec];
           const b=el("button","set"); b.type="button"; b.disabled=!avail;
           const t=el("div","t"); t.append(el("span",null,SEC[sec].name));
@@ -556,9 +563,11 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
       yr.append(rows); box.append(yr);
     });
     { const all_=[]; Object.values(rec).forEach(r=>(r.h||[]).forEach(x=>all_.push(x))); all_.sort((a,b)=>b[0]-a[0]); const r50=all_.slice(0,50); const hs=$("homeSummary"); hs.replaceChildren();
-      const a1=el("span"); a1.append(el("b","mono",String(ans)), `/${tot}問 回答`); hs.append(a1);
-      if(r50.length){ const v=r50.filter(x=>x[2]).length/r50.length; const a2=el("span"); a2.append(`直近${r50.length}回答 `, el("b","mono "+lv(v),pc(v))); hs.append(a2); } }
-    $("homeBar").style.width=(tot?ans/tot*100:0)+"%";
+      ["am1","am2"].forEach(sec=>{ const ct=el("span","ct"); ct.append(el("b","mono",String(ans[sec])), ` / ${tot[sec]}問 回答`);
+        const pb=el("div","pbar"); const i=el("i"); i.style.width=(tot[sec]?ans[sec]/tot[sec]*100:0)+"%"; pb.append(i);
+        hs.append(el("span","lb",SEC[sec].name), ct, pb); });
+      const hr=$("homeRecent"); hr.replaceChildren();
+      if(r50.length){ const v=r50.filter(x=>x[2]).length/r50.length; hr.append(`直近${r50.length}回答 `, el("b","mono "+lv(v),pc(v))); } }
     const LR=lastRun();
     $("mWrongSub").textContent = !LR ? "まだ解いた記録がありません" : LR.items.length ? `${LR.name}・${LR.items.length}問` : `${LR.name}は全問正解`;
     $("mWrong").disabled = !(LR&&LR.items.length);
@@ -744,7 +753,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
       const [y,m,d]=k.split("-").map(Number); const wd=WD[new Date(y,m-1,d).getDay()];
       const sec=el("details","logday"); sec.id="day-"+k; if(wrongOnly) sec.open=true;
       const ds=el("summary","daysum");
-      ds.append(el("span","logdate",`${m}月${d}日（${wd}）`), el("span","daycnt mono",`${list.length}問`));
+      ds.append(el("span","logdate",`${m}月${d}日（${wd}）`));
+      ["am1","am2"].forEach(sec=>{ const c=list.filter(e=>e.sec===sec).length; const sp=el("span","daycnt"+(c?"":" zero")); sp.append(el("small",null,SEC[sec].name), el("b","mono",String(c)), "問"); ds.append(sp); });
       sec.append(ds);
       const head=el("div","loghead");
       const stat=el("span","small"); stat.append(el("span","pill "+lv(ok/list.length),`正答率 ${pc(ok/list.length)}`), `　ミス${list.length-ok}`);
