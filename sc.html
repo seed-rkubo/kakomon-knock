@@ -525,6 +525,17 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   }
 
   // ---------- home ----------
+  // sid（1回の出題）ごとに、どの回の問題を含むか・解き直しかを調べる（記録が変わるまで使い回す）
+  let _ss=null, _ssv=-1;
+  function sidSets(){
+    let c=0, mx=0; Object.values(rec).forEach(r=>{ const h=(r&&r.h)||[]; c+=h.length; if(h.length&&h[h.length-1][0]>mx) mx=h[h.length-1][0]; }); const v=c+":"+mx;
+    if(_ss && _ssv===v) return _ss;
+    const only={}, retry={};
+    Object.values(rec).forEach(r=>(r.h||[]).forEach(h=>{ if(!h[3]) return; const sk=r.s+"_"+r.sec;
+      only[h[3]] = (only[h[3]]===undefined||only[h[3]]===sk) ? sk : null;
+      if(typeof h[4]==="string" && h[4].endsWith("の間違い")) retry[h[3]]=1; }));
+    _ssv=v; return _ss={only,retry};
+  }
   function setStats(id,sec){
     const n=SEC[sec].n; let done=0, ok=0;
     let lastTs=0;
@@ -532,7 +543,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     for(let i=1;i<=n;i++){ const r=rec[key(id,sec,i)]; if(r&&r.h&&r.h.length){ done++; if(r.last) ok++; const t=r.h[r.h.length-1][0]; if(t>lastTs) lastTs=t;
       r.h.forEach(h=>{ if(!h[3]) return; const g=runs[h[3]]||(runs[h[3]]={q:{},ts:0}); g.q[i]=h[2]; if(h[0]>g.ts) g.ts=h[0]; }); } }
     let full=null; // 最後に全問解き切ったテスト
-    let cnt=0; Object.values(runs).forEach(g=>{ const k=Object.keys(g.q); if(k.length===n){ cnt++; if(!full||g.ts>full.ts) full={ts:g.ts, ok:k.filter(x=>g.q[x]).length, n}; } });
+    // 通しとして数えるのは、この回だけを解いたセッション（ランダム出題などで他の回の問題が混ざったもの、間違えた問題の解き直しは除く）
+    const SS=sidSets();
+    let cnt=0; Object.entries(runs).forEach(([sid,g])=>{ const k=Object.keys(g.q); if(k.length===n && SS.only[sid]===id+"_"+sec && !SS.retry[sid]){ cnt++; if(!full||g.ts>full.ts) full={ts:g.ts, ok:k.filter(x=>g.q[x]).length, n}; } });
     return {n,done,ok,lastTs,full,cnt};
   }
   function renderHome(){
@@ -569,7 +582,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
           const sline=el("div","s");
           if(!avail) sline.textContent="準備中";
           else if(F){ sline.classList.add("done"); sline.append(el("span","sc",`${F.ok}/${F.n}`), el("span","sw",fwhen)); const c=el("span","rc",`${st.cnt}回`); c.title=`最後まで解いた回数：${st.cnt}回`; t.append(c); }
-          else sline.textContent = st.done? `途中 ${st.done}/${st.n}問` : "未実施";
+          else sline.textContent = st.done? (st.done===st.n? "全問回答・通し未実施" : `途中 ${st.done}/${st.n}問`) : "未実施";
           b.append(t,m,sline);
           if(avail) b.addEventListener("click",()=>startSet(s.id,sec));
           else b.style.opacity=.5;
