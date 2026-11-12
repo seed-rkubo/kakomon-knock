@@ -58,6 +58,17 @@ td.n{font-family:var(--f-mono);text-align:right}
 .pill.lv-goal{background:var(--good-soft)}
 .pill.lv-pass{background:var(--warn-soft)}
 .pill.lv-bad{background:var(--bad-soft)}
+.bkblk{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:12px;background:var(--bg)}
+.bkhd{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+.bkno{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-family:var(--f-mono);flex:none}
+.bkds{margin:6px 0 10px;font-size:13px;color:var(--muted);line-height:1.6}
+.bkact{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.bkrow{flex-wrap:nowrap}
+.bkin{flex:1;min-width:0;font:inherit;font-size:13px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+#tcOut{width:100%;margin-top:10px}
+.linkbtn{background:none;border:0;padding:4px 0;font:inherit;font-size:13px;color:var(--accent);text-decoration:underline;cursor:pointer}
+.bkmsg{font-size:13px;font-weight:700;margin-top:8px}
+.bkmsg:empty{display:none}
 .logday{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-bottom:8px;scroll-margin-top:12px}
 .daysum{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px}
 .daysum::-webkit-details-marker{display:none}
@@ -411,20 +422,34 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
 
   <section class="panel" id="backup">
     <h2 style="font-size:15px">記録の引き継ぎ・バックアップ</h2>
-    <p class="muted small" style="margin:0">記録はこのブラウザに保存されます。携帯とパソコンの記録をまとめるときは、「記録を送るリンク」を作ってもう一方の端末に送り、そのリンクを開いてください。開くだけで取り込まれ、同じ解答は二重に数えません。</p>
-    <div class="resactions">
-      <button class="btn" id="tcCopy" type="button">記録を送るリンクを作る</button>
-      <button class="btn ghost" id="tcAll" type="button">全部の記録を送る</button>
-      <button class="btn ghost" id="tcOpen" type="button">リンクを貼り付けて取り込む</button>
+    <p class="muted small" style="margin:0">記録はこのブラウザの中だけに保存されます。携帯とパソコンの記録をまとめるときは、①で送って②で受け取ります。同じ解答は二重に数えません。</p>
+    <div class="bkblk">
+      <div class="bkhd"><span class="bkno">1</span>別の端末に送る</div>
+      <p class="bkds">この端末の記録をリンクにします。メールやメモで自分に送り、もう一方の端末で開いてください。前回送った後に解いた分だけを送ります。</p>
+      <div class="bkact">
+        <button class="btn" id="tcCopy" type="button">送るリンクを作る</button>
+        <button class="linkbtn" id="tcAll" type="button">全部の記録を送り直す</button>
+      </div>
+      <input id="tcOut" class="bkin" readonly hidden aria-label="作ったリンク">
+      <div class="bkmsg" id="tcMsg" role="status"></div>
     </div>
-    <div id="tcBox" hidden style="display:flex;flex-direction:column;gap:8px">
-      <textarea id="tcIn" rows="3" placeholder="別の端末で作ったリンク（または引き継ぎコード）を貼り付け" style="font:inherit;font-size:12px;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);resize:vertical"></textarea>
-      <div class="resactions"><button class="btn" id="tcGo" type="button">取り込む</button></div>
+    <div class="bkblk">
+      <div class="bkhd"><span class="bkno">2</span>別の端末から受け取る</div>
+      <p class="bkds">届いたリンクを、この端末のブラウザ（Safari や Chrome）で開くだけで取り込まれます。開けないときは、リンクをここに貼り付けてください。</p>
+      <div class="bkact bkrow">
+        <input id="tcIn" class="bkin" placeholder="リンクを貼り付け" autocomplete="off">
+        <button class="btn" id="tcGo" type="button">取り込む</button>
+      </div>
+      <div class="bkmsg" id="rcMsg" role="status"></div>
     </div>
-    <div class="small" id="tcMsg" role="status" style="color:var(--good);font-weight:700"></div>
-    <div class="resactions">
-      <button class="btn ghost" id="bkExport">記録を書き出す</button>
-      <label class="btn ghost" style="cursor:pointer">記録を読み込む<input type="file" id="bkImport" accept="application/json" hidden></label>
+    <div class="bkblk">
+      <div class="bkhd"><span class="bkno">3</span>ファイルに保存する</div>
+      <p class="bkds">ブラウザのデータを消すと記録も消えます。念のためファイルに保存しておけます。保存したファイルを読み込むと、今の記録にまとめて追加されます。</p>
+      <div class="bkact">
+        <button class="btn ghost" id="bkExport" type="button">ファイルに書き出す</button>
+        <label class="btn ghost" style="cursor:pointer">ファイルを読み込む<input type="file" id="bkImport" accept="application/json" hidden></label>
+      </div>
+      <div class="bkmsg" id="bkMsg" role="status"></div>
     </div>
   </section>
 
@@ -884,6 +909,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     const a=document.createElement("a"); const d=new Date();
     a.href=URL.createObjectURL(blob); a.download=`kakomon-knock-sc-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}.json`;
     document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    tcMsg(`✓ ${a.download} を保存しました`,false,"bkMsg");
   });
   // 記録の統合：解いた時刻が同じ解答は同じものとみなし、重複して数えない
   function mergeRec(inc){
@@ -893,8 +919,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   }
   $("bkImport").addEventListener("change",async e=>{
     const f=e.target.files[0]; if(!f) return;
-    try{ const d=JSON.parse(await f.text()); const r=mergeRec(d.rec||d); setStatus(r.add?`記録を読み込みました（新しい解答 ${r.add}件）。`:"新しい記録はありませんでした（すべて取り込み済み）。"); }
-    catch(err){ setStatus("読み込めませんでした。書き出したファイルを選んでください。"); }
+    try{ const d=JSON.parse(await f.text()); const r=mergeRec(d.rec||d); tcMsg(r.add?`✓ 読み込みました（新しい解答 ${r.add}件、重複は除外）`:"新しい記録はありませんでした（すべて取り込み済み）",false,"bkMsg"); }
+    catch(err){ tcMsg("読み込めませんでした。書き出したファイルを選んでください。",true,"bkMsg"); }
     e.target.value="";
   });
   // ---------- 記録を送るリンク（#sync=） ----------
@@ -953,7 +979,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     if(m) return JSON.parse(new TextDecoder().decode(await zip(b64u8(m[1]),"gzip",true)));
     return null;
   }
-  const tcMsg=(t,bad)=>{ const m=$("tcMsg"); m.textContent=t; m.style.color=bad?"var(--bad)":"var(--good)"; clearTimeout(window.__tcT); window.__tcT=setTimeout(()=>m.textContent="",8000); };
+  const tcMsg=(t,bad,id)=>{ const m=$(id||"tcMsg"); m.textContent=t; m.style.color=bad?"var(--bad)":"var(--good)"; clearTimeout(m.__t); m.__t=setTimeout(()=>m.textContent="",10000); };
   async function sendLink(all){
     const L=await makeLink(all);
     if(!L.cnt){ tcMsg(all?"まだ記録がありません。":"前回リンクを作ってから、新しく解いた問題はありません。全部送るときは「全部の記録を送る」を押してください。",!all); return; }
@@ -961,17 +987,16 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     if(navigator.share && matchMedia("(pointer:coarse)").matches){
       try{ await navigator.share({title:"SC過去問ノックの記録",url:L.url}); done(); tcMsg(`✓ 解答${L.cnt}件のリンクを送りました。もう一方の端末でリンクを開くと取り込まれます`); return; }
       catch(e){ if(e&&e.name==="AbortError") return; } }
-    try{ await navigator.clipboard.writeText(L.url); }catch(e){ const x=$("tcIn"); $("tcBox").hidden=false; x.value=L.url; x.select(); document.execCommand("copy"); }
+    try{ await navigator.clipboard.writeText(L.url); }catch(e){ const x=$("tcOut"); x.hidden=false; x.value=L.url; x.select(); try{ document.execCommand("copy"); }catch(_){} }
     done(); tcMsg(`✓ 解答${L.cnt}件のリンクをコピーしました。メールやメモで自分に送り、もう一方の端末で開いてください`);
   }
   $("tcCopy").addEventListener("click",()=>sendLink(false));
   $("tcAll").addEventListener("click",()=>sendLink(true));
-  $("tcOpen").addEventListener("click",()=>{ $("tcBox").hidden=false; $("tcIn").focus(); });
   $("tcGo").addEventListener("click",async()=>{
-    let inc=null; try{ inc=await readCode($("tcIn").value); }catch(e){ tcMsg("リンクが途中で切れているようです。もう一度コピーして貼り付けてください。",true); return; }
-    if(!inc){ tcMsg("リンクが見つかりません。作ったリンクをそのまま貼り付けてください。",true); return; }
-    const r=mergeRec(inc); $("tcIn").value=""; $("tcBox").hidden=true;
-    tcMsg(r.add?`✓ 取り込みました（新しい解答 ${r.add}件、重複は除外）`:"新しい記録はありませんでした（すべて取り込み済み）");
+    let inc=null; try{ inc=await readCode($("tcIn").value); }catch(e){ tcMsg("リンクが途中で切れているようです。もう一度コピーして貼り付けてください。",true,"rcMsg"); return; }
+    if(!inc){ tcMsg("リンクが見つかりません。作ったリンクをそのまま貼り付けてください。",true,"rcMsg"); return; }
+    const r=mergeRec(inc); $("tcIn").value="";
+    tcMsg(r.add?`✓ 取り込みました（新しい解答 ${r.add}件、重複は除外）`:"新しい記録はありませんでした（すべて取り込み済み）",false,"rcMsg");
   });
   // リンクから開いたときは、記録を取り込んでからURLを元に戻す
   async function importFromHash(){
