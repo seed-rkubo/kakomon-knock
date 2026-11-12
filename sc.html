@@ -104,6 +104,10 @@ td.n{font-family:var(--f-mono);text-align:right}
 .shcard{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg);display:flex;flex-direction:column;gap:12px}
 .shhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 .shname{font-family:var(--f-display);font-weight:800;font-size:18px}
+.shdone{display:grid;grid-template-columns:auto auto 1fr;gap:4px 12px;align-items:center;font-size:13px;color:var(--muted)}
+.shdone .lb{font-weight:700;color:var(--fg)}
+.shdone .ct{white-space:nowrap}
+.shdone .ct b{display:inline-block;min-width:4ch;text-align:right;font-size:15px;color:var(--fg)}
 .shbar{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
 .shbar i{display:block;height:100%;background:var(--accent)}
 .shrow{display:flex;justify-content:space-between;gap:8px;padding:5px 0;font-size:13px;border-bottom:1px dashed var(--line)}
@@ -220,7 +224,7 @@ header{flex-direction:column;align-items:stretch}
 .set .s.done .sw{min-width:5ch;text-align:right;color:var(--muted);font-family:var(--f-body)}
 .rc{margin-left:auto;font-family:var(--f-mono);font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 8px;line-height:1.6;white-space:nowrap}
 .rc-legend{margin:0 2px;display:inline-block}
-.yhead{display:grid;grid-template-columns:minmax(0,130px) 44px minmax(0,1fr) minmax(0,1fr);gap:8px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;padding:0 0 6px;border-bottom:1px solid var(--line)}
+.yhead{display:grid;grid-template-columns:minmax(0,132px) 44px minmax(0,1fr) minmax(0,1fr);gap:8px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;padding:0 0 6px;border-bottom:1px solid var(--line)}
 .yr{display:grid;grid-template-columns:minmax(0,130px) minmax(0,1fr);gap:0 10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .yhd{display:none}
 .yr:last-child{border-bottom:0}
@@ -242,7 +246,7 @@ header{flex-direction:column;align-items:stretch}
 @media (max-width:640px){
 .yhead{display:none}
 .yhd{display:grid!important;grid-template-columns:38px minmax(0,1fr) minmax(0,1fr);gap:6px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin-bottom:-2px}
-.yhd span{padding-left:10px}
+.yhd span{text-align:center}
 .yr{grid-template-columns:1fr;gap:6px}
 .yrow .set .t,.yrow .set .s{width:100%}
 .yrow{grid-template-columns:38px minmax(0,1fr) minmax(0,1fr);gap:6px}
@@ -268,7 +272,7 @@ details.fold[open]>summary{margin-bottom:10px}
 #dupPanel>summary{flex-wrap:nowrap}
 #dupPanel>summary h2,#dupSum{white-space:nowrap}
 .ylbl{display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0;align-items:center;text-align:center}
-.yhead span:first-child{text-align:center}
+.yhead span{text-align:center}
 .ylbl b{font-family:var(--f-mono);line-height:1.1;font-size:26px}
 .ylbl span{color:var(--muted);font-size:12px}
 @media (max-width:640px){
@@ -899,8 +903,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   const b64d=str=>{ const bin=atob(str.replace(/-/g,"+").replace(/_/g,"/")); return new TextDecoder().decode(Uint8Array.from(bin,c=>c.charCodeAt(0))); };
   function buildSummary(name){
     const ev=allEvents(); const tday=Math.floor((Date.now()-new Date().getTimezoneOffset()*60000)/DAY);
-    let done=0, tot=0; const f=[];
-    SESSIONS.forEach((s,si)=>["am1","am2"].forEach((sec,ci)=>{ if(!(AVAILABLE[s.id]&&AVAILABLE[s.id][sec])) return; const st=setStats(s.id,sec); done+=st.done; tot+=st.n; if(st.full) f.push([si,ci,st.full.ok,st.full.n,Math.floor((st.full.ts-new Date().getTimezoneOffset()*60000)/DAY),st.cnt]); }));
+    let done=0, tot=0; const f=[]; const ds=[[0,0],[0,0]];
+    SESSIONS.forEach((s,si)=>["am1","am2"].forEach((sec,ci)=>{ if(!(AVAILABLE[s.id]&&AVAILABLE[s.id][sec])) return; const st=setStats(s.id,sec); done+=st.done; tot+=st.n; ds[ci][0]+=st.done; ds[ci][1]+=st.n; if(st.full) f.push([si,ci,st.full.ok,st.full.n,Math.floor((st.full.ts-new Date().getTimezoneOffset()*60000)/DAY),st.cnt]); }));
     // runs: one quiz session = one row
     const g={}; const order=[];
     ev.slice().sort((a,b)=>a.ts-b.ts).forEach(e=>{ const k=e.sid?"s"+e.sid:"x"+dkey(e.ts)+e.s+e.sec; if(!g[k]){ g[k]=[]; order.push(k); } g[k].push(e); });
@@ -908,7 +912,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
       const si=SESSIONS.findIndex(x=>x.id===f0.s); const ci=f0.sec==="am1"?0:1;
       const base0=setLabel(f0.s,f0.sec); const full=same && f0.title===base0;
       return [Math.floor((it[it.length-1].ts - new Date().getTimezoneOffset()*60000)/DAY), same?si:-1, same?ci:-1, full?"":((f0.title||"").endsWith("の間違い")&&same?"前回間違えた問題":(f0.title||"いろいろな問題")).slice(0,20), it.length, it.filter(e=>e.ok).length]; });
-    return {v:1, nm:(name||"").trim().slice(0,20), t:tday, d:done, tot, f, r:runs.filter(r=>r[0]===tday)};
+    return {v:1, nm:(name||"").trim().slice(0,20), t:tday, d:done, tot, ds, f, r:runs.filter(r=>r[0]===tday)};
   }
   const dstr=dn=>{ const x=new Date(dn*DAY); return `${x.getUTCMonth()+1}/${x.getUTCDate()}`; };
   const SN=si=>{ const s=SESSIONS[si]; if(!s) return ""; const k=s.id.slice(-1); return s.id.slice(0,4)+(k==="h"?"春":k==="a"?"秋":"10月"); };
@@ -930,8 +934,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   function summaryCard(p){
     const c=el("div","shcard");
     const h=el("div","shhead"); h.append(el("span","shname",(p.nm||"だれか")+" さんの進み具合"), el("span","muted small",`${dstr(p.t)} 時点`)); c.append(h);
-    const pr=p.tot? p.d/p.tot : 0;
-    const bar=el("div"); bar.append(el("div","small",`回答済み ${p.d} / ${p.tot} 問（${pc(pr)}）`)); const sb=el("div","shbar"); const i=el("i"); i.style.width=(pr*100)+"%"; sb.append(i); bar.append(sb); c.append(bar);
+    const dsv=shDone(p); const bar=el("div","shdone");
+    dsv.forEach(([nm,d,t])=>{ const ct=el("span","ct"); ct.append(el("b","mono",String(d)), ` / ${t}問 回答`);
+      const sb=el("div","shbar"); const i=el("i"); i.style.width=(t?d/t*100:0)+"%"; sb.append(i); bar.append(el("span","lb",nm), ct, sb); });
+    c.append(bar);
     const td=el("div","shsec"); td.append(el("div","shsech","今日"));
     const tg=todayGroups(p);
     if(tg.length) tg.forEach(x=>{ const row=el("div","shrow"); row.append(el("span",null,tgName(x))); const v=el("span","mono"); const r=x.n?x.ok/x.n:0; v.append(el("b",null,`${x.cnt}回`), "　最新 ", el("b",lv(r),pc(r))); row.append(v); td.append(row); });
@@ -946,10 +952,16 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     c.append(tt);
     return c;
   }
+  // 回答済みの数（午前I・午前II別。区分の内訳がない古いリンクは合計で表示）
+  function shDone(p){
+    const ok=a=>Array.isArray(a)&&a.length===2&&a.every(x=>Number.isInteger(x)&&x>=0);
+    return Array.isArray(p.ds)&&p.ds.length===2&&p.ds.every(ok) ? p.ds.map((x,ci)=>[SECN(ci),x[0],x[1]]) : [["合計",+p.d||0,+p.tot||0]];
+  }
   function summaryText(p,url){
     const tg=todayGroups(p).map(x=>`・${tgName(x)} ${x.cnt}回（最新${pc(x.n?x.ok/x.n:0)}）`);
     const tt=totalGroups(p).map(G=>`・${SN(G.si)} `+G.items.map(it=>`${SECN(it.ci)} ${it.cnt}回(${pc(it.ok/it.n)})`).join("／"));
     return [`【SC過去問ノック】${p.nm?p.nm+"さん ":""}${dstr(p.t)}`,
+      "■回答済み", ...shDone(p).map(([nm,d,t])=>`・${nm} ${d}/${t}問`),
       "■今日", ...(tg.length?tg:["・まだ解いていません"]),
       "■通算（最後まで解いた回数）", ...(tt.length?tt:["・まだありません"]),
       url].join("\n");
