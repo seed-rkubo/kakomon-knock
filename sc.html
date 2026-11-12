@@ -411,13 +411,14 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
 
   <section class="panel" id="backup">
     <h2 style="font-size:15px">記録の引き継ぎ・バックアップ</h2>
-    <p class="muted small" style="margin:0">記録はこのブラウザに保存されます。携帯とパソコンの記録をまとめるときは、引き継ぎコードをコピーして、もう一方の端末で貼り付けてください。同じ解答は二重に数えません。</p>
+    <p class="muted small" style="margin:0">記録はこのブラウザに保存されます。携帯とパソコンの記録をまとめるときは、「記録を送るリンク」を作ってもう一方の端末に送り、そのリンクを開いてください。開くだけで取り込まれ、同じ解答は二重に数えません。</p>
     <div class="resactions">
-      <button class="btn" id="tcCopy" type="button">引き継ぎコードをコピー</button>
-      <button class="btn ghost" id="tcOpen" type="button">コードを貼り付けて取り込む</button>
+      <button class="btn" id="tcCopy" type="button">記録を送るリンクを作る</button>
+      <button class="btn ghost" id="tcAll" type="button">全部の記録を送る</button>
+      <button class="btn ghost" id="tcOpen" type="button">リンクを貼り付けて取り込む</button>
     </div>
     <div id="tcBox" hidden style="display:flex;flex-direction:column;gap:8px">
-      <textarea id="tcIn" rows="3" placeholder="別の端末でコピーした引き継ぎコードを貼り付け" style="font:inherit;font-size:12px;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);resize:vertical"></textarea>
+      <textarea id="tcIn" rows="3" placeholder="別の端末で作ったリンク（または引き継ぎコード）を貼り付け" style="font:inherit;font-size:12px;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);resize:vertical"></textarea>
       <div class="resactions"><button class="btn" id="tcGo" type="button">取り込む</button></div>
     </div>
     <div class="small" id="tcMsg" role="status" style="color:var(--good);font-weight:700"></div>
@@ -895,29 +896,91 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     catch(err){ setStatus("読み込めませんでした。書き出したファイルを選んでください。"); }
     e.target.value="";
   });
-  // ---------- 引き継ぎコード（gzip + base64url） ----------
-  const TCP="SCK1:";
-  async function gz(str){ const s=new Blob([str]).stream().pipeThrough(new CompressionStream("gzip")); return new Uint8Array(await new Response(s).arrayBuffer()); }
-  async function gunz(u8){ const s=new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip")); return await new Response(s).text(); }
+  // ---------- 記録を送るリンク（#sync=） ----------
+  // 形式2：解答を数値だけのバイナリにしてdeflate圧縮し、base64urlにする。
+  //   回のID一覧・タイトル一覧・回(sid)ごとの解答（問題番号、時刻の差分ミリ秒、選んだ記号/正誤/正解）
+  // 形式1（SCK1:）：旧形式。貼り付けでの取り込みだけ対応。
+  async function zip(u8,fmt,de){ const st=new Blob([u8]).stream().pipeThrough(de?new DecompressionStream(fmt):new CompressionStream(fmt)); return new Uint8Array(await new Response(st).arrayBuffer()); }
   const u8b64=u=>{ let bin=""; for(let i=0;i<u.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); };
   const b64u8=s=>Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0));
-  const tcMsg=(t,bad)=>{ const m=$("tcMsg"); m.textContent=t; m.style.color=bad?"var(--bad)":"var(--good)"; clearTimeout(window.__tcT); window.__tcT=setTimeout(()=>m.textContent="",6000); };
-  $("tcCopy").addEventListener("click",async()=>{
-    const cnt=Object.values(rec).reduce((t,r)=>t+((r&&r.h)?r.h.length:0),0);
-    if(!cnt){ tcMsg("まだ記録がありません。",true); return; }
-    const code=TCP+u8b64(await gz(JSON.stringify(rec)));
-    try{ await navigator.clipboard.writeText(code); }catch(e){ const t=$("tcIn"); $("tcBox").hidden=false; t.value=code; t.select(); document.execCommand("copy"); }
-    tcMsg(`✓ コピーしました（解答${cnt}件）。LINEなどで自分に送り、もう一方の端末で「コードを貼り付けて取り込む」に貼り付けてください`);
-  });
+  const SENTKEY="kk-sc-sent";
+  function encodeRec(since){
+    const out=[]; const vu=n=>{ n=Math.max(0,Math.floor(n)); while(n>=128){ out.push(n%128+128); n=Math.floor(n/128); } out.push(n); };
+    const vs=n=>vu(n>=0?n*2:-n*2-1);
+    const str=t=>{ const b=new TextEncoder().encode(t); vu(b.length); b.forEach(x=>out.push(x)); };
+    const sess=[], sIdx={}, titles=[], tIdx={}, runs=new Map(); let cnt=0;
+    for(const k in rec){ const r=rec[k]; if(!r||!Array.isArray(r.h)||!SEC[r.sec]) continue;
+      if(sIdx[r.s]==null){ sIdx[r.s]=sess.length; sess.push(r.s); }
+      const q=sIdx[r.s]*64+(r.sec==="am2"?32:0)+(r.n-1), a=CH.indexOf(r.a)+1;
+      r.h.forEach(x=>{ if(!(x[0]>since)) return; const sid=Number.isFinite(x[3])?x[3]:0, t=typeof x[4]==="string"?x[4]:"";
+        if(tIdx[t]==null){ tIdx[t]=titles.length; titles.push(t); }
+        const rk=sid+"\u0000"+t; if(!runs.has(rk)) runs.set(rk,{sid,t:tIdx[t],a:[]});
+        runs.get(rk).a.push([x[0],q,Math.max(0,CH.indexOf(x[1]))|(x[2]?4:0)|(a<<3)]); cnt++; }); }
+    if(!cnt) return {cnt:0};
+    out.push(2); vu(sess.length); sess.forEach(str); vu(titles.length); titles.forEach(str);
+    const rl=[...runs.values()].sort((x,y)=>x.sid-y.sid); vu(rl.length); let ps=0;
+    rl.forEach(R=>{ vs(R.sid-ps); ps=R.sid; vu(R.t); R.a.sort((x,y)=>x[0]-y[0]); vu(R.a.length); let pt=R.sid;
+      R.a.forEach(([ts,q,f])=>{ vu(q); vs(ts-pt); pt=ts; out.push(f); }); });
+    return {cnt, bytes:new Uint8Array(out), max:Math.max(...rl.flatMap(R=>R.a.map(x=>x[0])))};
+  }
+  function decodeRec(u){
+    let i=0; const byte=()=>{ if(i>=u.length) throw 0; return u[i++]; };
+    const vu=()=>{ let n=0,m=1,b; do{ b=byte(); n+=(b%128)*m; m*=128; }while(b>=128); return n; };
+    const vs=()=>{ const n=vu(); return n%2? -(n+1)/2 : n/2; };
+    const str=()=>{ const l=vu(); if(i+l>u.length) throw 0; const t=new TextDecoder().decode(u.subarray(i,i+l)); i+=l; return t; };
+    if(byte()!==2) throw 0;
+    const sess=Array.from({length:vu()},str), titles=Array.from({length:vu()},str), inc={};
+    let sid=0; for(let nr=vu(); nr>0; nr--){ sid+=vs(); const t=titles[vu()]; let ts=sid;
+      for(let na=vu(); na>0; na--){ const q=vu(); ts+=vs(); const f=byte();
+        const s=sess[q>>6], sec=(q&32)?"am2":"am1", n=(q&31)+1, k=key(s,sec,n);
+        const r=inc[k]||(inc[k]={s,sec,n,h:[]}); if(f>>3) r.a=CH[(f>>3)-1];
+        r.h.push([ts,CH[f&3],(f&4)?1:0,sid,t]); } }
+    for(const k in inc){ inc[k].h.sort((x,y)=>x[0]-y[0]); inc[k].h=inc[k].h.slice(-20); }
+    return inc;
+  }
+  async function makeLink(all){
+    let since=0; if(!all){ try{ since=+localStorage.getItem(SENTKEY)||0; }catch(e){} }
+    const E=encodeRec(since); if(!E.cnt) return E;
+    let body; try{ body="2"+u8b64(await zip(E.bytes,"deflate-raw")); }catch(e){ body="2u"+u8b64(E.bytes); }
+    return {...E, url:location.origin+location.pathname+"#sync="+body};
+  }
+  async function readCode(text){
+    const t=String(text||"").replace(/\s+/g,"");
+    let m=t.match(/sync=(2u?)([A-Za-z0-9_-]+)/);
+    if(m){ const raw=b64u8(m[2]); return decodeRec(m[1]==="2u"?raw:await zip(raw,"deflate-raw",true)); }
+    m=t.match(/SCK1:([A-Za-z0-9_-]+)/);
+    if(m) return JSON.parse(new TextDecoder().decode(await zip(b64u8(m[1]),"gzip",true)));
+    return null;
+  }
+  const tcMsg=(t,bad)=>{ const m=$("tcMsg"); m.textContent=t; m.style.color=bad?"var(--bad)":"var(--good)"; clearTimeout(window.__tcT); window.__tcT=setTimeout(()=>m.textContent="",8000); };
+  async function sendLink(all){
+    const L=await makeLink(all);
+    if(!L.cnt){ tcMsg(all?"まだ記録がありません。":"前回リンクを作ってから、新しく解いた問題はありません。全部送るときは「全部の記録を送る」を押してください。",!all); return; }
+    const done=()=>{ try{ localStorage.setItem(SENTKEY,String(Math.max(L.max,+localStorage.getItem(SENTKEY)||0))); }catch(e){} };
+    if(navigator.share && matchMedia("(pointer:coarse)").matches){
+      try{ await navigator.share({title:"SC過去問ノックの記録",url:L.url}); done(); tcMsg(`✓ 解答${L.cnt}件のリンクを送りました。もう一方の端末でリンクを開くと取り込まれます`); return; }
+      catch(e){ if(e&&e.name==="AbortError") return; } }
+    try{ await navigator.clipboard.writeText(L.url); }catch(e){ const x=$("tcIn"); $("tcBox").hidden=false; x.value=L.url; x.select(); document.execCommand("copy"); }
+    done(); tcMsg(`✓ 解答${L.cnt}件のリンクをコピーしました。メールやメモで自分に送り、もう一方の端末で開いてください`);
+  }
+  $("tcCopy").addEventListener("click",()=>sendLink(false));
+  $("tcAll").addEventListener("click",()=>sendLink(true));
   $("tcOpen").addEventListener("click",()=>{ $("tcBox").hidden=false; $("tcIn").focus(); });
   $("tcGo").addEventListener("click",async()=>{
-    const mm=$("tcIn").value.replace(/\s+/g,"").match(/SCK1:([A-Za-z0-9_-]+)/);
-    if(!mm){ tcMsg("引き継ぎコードが見つかりません。コピーしたコードをそのまま貼り付けてください。",true); return; }
-    try{ const inc=JSON.parse(await gunz(b64u8(mm[1]))); const r=mergeRec(inc);
-      $("tcIn").value=""; $("tcBox").hidden=true;
-      tcMsg(r.add?`✓ 取り込みました（新しい解答 ${r.add}件、重複は除外）`:"新しい記録はありませんでした（すべて取り込み済み）"); }
-    catch(e){ tcMsg("コードが途中で切れているようです。もう一度コピーして貼り付けてください。",true); }
+    let inc=null; try{ inc=await readCode($("tcIn").value); }catch(e){ tcMsg("リンクが途中で切れているようです。もう一度コピーして貼り付けてください。",true); return; }
+    if(!inc){ tcMsg("リンクが見つかりません。作ったリンクをそのまま貼り付けてください。",true); return; }
+    const r=mergeRec(inc); $("tcIn").value=""; $("tcBox").hidden=true;
+    tcMsg(r.add?`✓ 取り込みました（新しい解答 ${r.add}件、重複は除外）`:"新しい記録はありませんでした（すべて取り込み済み）");
   });
+  // リンクから開いたときは、記録を取り込んでからURLを元に戻す
+  async function importFromHash(){
+    if(!/^#sync=/.test(location.hash)) return;
+    const h=location.hash; history.replaceState(null,"",location.pathname);
+    try{ const inc=await readCode(h); const r=mergeRec(inc||{});
+      setStatus(r.add?`✓ 別の端末の記録を取り込みました（新しい解答 ${r.add}件、重複は除外）。`:"別の端末の記録はすべて取り込み済みでした。"); }
+    catch(e){ setStatus("リンクが途中で切れていて、記録を取り込めませんでした。リンクをもう一度作って送ってください。"); }
+    setTimeout(()=>setStatus(""),10000);
+  }
   // ---------- share ----------
   const DAY=864e5;
   const b64e=str=>{ const u=new TextEncoder().encode(str); let bin=""; u.forEach(c=>bin+=String.fromCharCode(c)); return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); };
@@ -1010,8 +1073,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   $("shMine").addEventListener("click",()=>{ history.replaceState(null,"",location.pathname); $("vShare").hidden=true; $("sharePanel").hidden=false; $("backup").hidden=false; show("home"); });
   const _show=show;
   show=function(v){ if(!$("vShare").hidden){ history.replaceState(null,"",location.pathname); $("vShare").hidden=true; $("sharePanel").hidden=false; $("backup").hidden=false; } _show(v); };
-  window.addEventListener("hashchange",showShared);
+  window.addEventListener("hashchange",()=>{ importFromHash(); showShared(); });
   renderHome();
+  importFromHash();
   showShared();
 })();
 </script>
