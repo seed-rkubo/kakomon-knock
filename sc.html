@@ -31,7 +31,20 @@ button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outlin
 .choices button:disabled{cursor:default}
 .verdict .mark{font-family:var(--f-display);font-size:28px;line-height:1}
 .exp h3{font-size:14px;margin-bottom:4px}
-.exsum{margin:0 0 10px}
+.exsum{margin:0 0 10px;white-space:pre-line}
+.exbox{border-radius:10px;padding:10px 12px;margin:0 0 10px;font-size:14px;line-height:1.7}
+.exbh{font-size:12px;font-weight:700;letter-spacing:.04em;margin-bottom:4px}
+.exterms{background:var(--surface);border:1px solid var(--line)}
+.exterms dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px}
+.exterms dt{font-weight:700;white-space:nowrap}
+.exterms dd{margin:0}
+.exsteps{border:1px solid var(--line)}
+.exsteps ol{margin:0;padding-left:1.4em}
+.exsteps li{margin:2px 0}
+.extip{background:var(--accent-soft)}
+.extip .exbh{color:var(--accent)}
+.extip p{margin:0}
+@media (max-width:640px){.exterms dl{grid-template-columns:1fr}.exterms dt{white-space:normal}.exterms dd{margin-bottom:4px}}
 .exlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;white-space:normal}
 .exlist li.is-right{border-color:var(--good)}
 .exlist li.is-chosen.is-wrong{border-color:var(--bad)}
@@ -680,7 +693,12 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     if(!exText){ ex.append(document.createTextNode("この問題の解説は準備中です。")); }
     else if(typeof exText==="string"){ ex.append(document.createTextNode(exText)); }
     else {
+      // 丁寧な解説（任意）：terms=用語の説明、steps=計算・考え方の手順、tip=解き方のコツ
+      if(Array.isArray(exText.terms)&&exText.terms.length){ const b=el("div","exbox exterms"); b.append(el("div","exbh","まず用語"));
+        const dl=el("dl"); exText.terms.forEach(([w,d])=>{ dl.append(el("dt",null,w), el("dd",null,d)); }); b.append(dl); ex.append(b); }
       ex.append(el("p","exsum",exText.sum||""));
+      if(Array.isArray(exText.steps)&&exText.steps.length){ const b=el("div","exbox exsteps"); b.append(el("div","exbh","手順"));
+        const ol=el("ol"); exText.steps.forEach(t=>ol.append(el("li",null,t))); b.append(ol); ex.append(b); }
       const ul=el("ul","exlist");
       KANA.forEach(k=>{
         const t=exText.c&&exText.c[k]; if(!t) return;
@@ -693,6 +711,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
         ul.append(li);
       });
       ex.append(ul);
+      if(exText.tip){ const b=el("div","exbox extip"); b.append(el("div","exbh","解き方のコツ"), el("p",null,exText.tip)); ex.append(b); }
     }
     $("after").hidden=false;
   }
