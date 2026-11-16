@@ -903,14 +903,18 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     return {name, items:wrong};
   }
   $("mWrong").addEventListener("click",()=>{ const LR=lastRun(); if(LR&&LR.items.length) openQuiz(`${LR.name.replace(/（解き直し）$/,"")} の間違い`, LR.items); });
-  $("mRand1").addEventListener("click",()=>openQuiz("午前I ランダム30問", shuffle(availList("am1")).slice(0,30)));
-  $("mRand2").addEventListener("click",()=>openQuiz("午前II ランダム30問", shuffle(availList("am2")).slice(0,30)));
+  // ランダムに選ぶとき、試験回が違っても同じ内容の問題（頻出問題の同じグループ）は1問だけにする
+  function pickUnique(list,n){ const seen=new Set(), out=[];
+    for(const x of shuffle(list.slice())){ const k=key(x.s,x.sec,x.n), g=DUPOF[k]!=null?"g"+DUPOF[k]:k; if(seen.has(g)) continue; seen.add(g); out.push(x); if(out.length>=n) break; }
+    return out; }
+  $("mRand1").addEventListener("click",()=>openQuiz("午前I ランダム30問", pickUnique(availList("am1"),30)));
+  $("mRand2").addEventListener("click",()=>openQuiz("午前II ランダム30問", pickUnique(availList("am2"),30)));
   // 頻出・未回答は午前I／午前IIごと（両方に出た頻出問題は、その区分の回から出題）
   const dupOf=sec=>DUP.map(g=>g.m.find(k=>k.split("_")[1]===sec)).filter(Boolean);
   const newOf=sec=>availList(sec).filter(x=>!groupDone(key(x.s,x.sec,x.n)));
   ["am1","am2"].forEach((sec,ci)=>{ const nm=SEC[sec].name, i=ci+1;
     $("mDup"+i).addEventListener("click",()=>openQuiz(`${nm} 頻出問題`, shuffle(dupOf(sec)).slice(0,10).map(pk)));
-    $("mNew"+i).addEventListener("click",()=>openQuiz(`${nm} 未回答から`, shuffle(newOf(sec)).slice(0,10)));
+    $("mNew"+i).addEventListener("click",()=>openQuiz(`${nm} 未回答から`, pickUnique(newOf(sec),10)));
   });
   function quickCounts(){ ["am1","am2"].forEach((sec,ci)=>{ const i=ci+1, nn=newOf(sec).length, nd=dupOf(sec).length;
     $("mNew"+i+"Sub").textContent=`残り${nn}問`; $("mNew"+i).disabled=!nn;
