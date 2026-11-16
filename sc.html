@@ -82,6 +82,21 @@ td.n{font-family:var(--f-mono);text-align:right}
 .linkbtn{background:none;border:0;padding:4px 0;font:inherit;font-size:13px;color:var(--accent);text-decoration:underline;cursor:pointer}
 .bkmsg{font-size:13px;font-weight:700;margin-top:8px}
 .bkmsg:empty{display:none}
+.wctl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:12px;font-size:13px}
+.wctl select{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+.wctl label{display:inline-flex;gap:6px;align-items:center;color:var(--muted)}
+.wcat{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:14px 0 6px}
+.wrow{display:flex;align-items:stretch;gap:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-bottom:6px}
+.wrow.done{background:var(--sunk);border-color:transparent}
+.wmain{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;border:0;background:none;padding:10px 12px;font:inherit;color:inherit;cursor:pointer}
+.wq{font-weight:700;line-height:1.5}
+.wrow .wa{display:none;font-size:14px;line-height:1.7;color:var(--fg)}
+.wrow.open .wa{display:block}
+.wck{flex:none;width:44px;border:0;border-left:1px solid var(--line);background:none;font-size:18px;font-weight:700;color:var(--muted);cursor:pointer;border-radius:0 10px 10px 0}
+.wrow.done .wck{color:var(--good)}
+.wface{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;width:100%;min-height:220px;margin:8px 0 12px;padding:24px 18px;border:1px solid var(--line-strong);border-radius:14px;background:var(--surface);font:inherit;color:inherit;text-align:center;cursor:pointer}
+.wface .wq{font-family:var(--f-display);font-size:20px}
+.wface .wa{font-size:15px;line-height:1.8}
 .logday{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-bottom:8px;scroll-margin-top:12px}
 .daysum{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px}
 .daysum::-webkit-details-marker{display:none}
@@ -338,6 +353,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     </div>
     <div class="tabs" role="tablist">
       <button role="tab" id="tabPlay" aria-selected="true">出題</button>
+      <button role="tab" id="tabWords" aria-selected="false">単語帳</button>
       <button role="tab" id="tabLog" aria-selected="false">履歴</button>
     </div>
   </header>
@@ -418,6 +434,24 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     <span class="small" id="shMsg" role="status"></span>
     <textarea id="shText" readonly hidden></textarea>
   </div>
+
+  <section id="vWords" hidden class="panel">
+    <div class="hhead"><h2>単語帳</h2><span class="muted small" id="wSum"></span></div>
+    <div class="pbar" aria-hidden="true" style="margin:6px 0 12px"><i id="wBar"></i></div>
+    <div class="wctl">
+      <select id="wCat" aria-label="分野"></select>
+      <label><input type="checkbox" id="wHideDone"> 覚えた語を隠す</label>
+      <label><input type="checkbox" id="wRev"> 意味から用語を当てる</label>
+      <button class="btn" id="wStart" type="button">カードでめくる</button>
+    </div>
+    <div id="wCard" hidden>
+      <div class="muted small mono" id="wPos"></div>
+      <button class="wface" id="wFace" type="button"><span class="wq" id="wQ"></span><span class="wa" id="wA" hidden></span><span class="muted small" id="wHint">タップで答えを表示</span></button>
+      <div class="resactions"><button class="btn ghost" id="wNo" type="button">まだ</button><button class="btn" id="wYes" type="button">覚えた</button><button class="linkbtn" id="wEnd" type="button">一覧に戻る</button></div>
+    </div>
+    <p class="muted small" id="wNote" style="margin:0 0 8px">行をタップすると答えが出ます。✓ を押すと「覚えた」になります。</p>
+    <div id="wList"></div>
+  </section>
 
   <section id="vLog" hidden class="panel">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
@@ -875,12 +909,52 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   }
 
   function show(v){
-    $("vHome").hidden = v!=="home"; $("vQuiz").hidden = v!=="quiz"; $("vLog").hidden = v!=="log"; $("vResult").hidden = v!=="result";
+    $("vHome").hidden = v!=="home"; $("vQuiz").hidden = v!=="quiz"; $("vLog").hidden = v!=="log"; $("vResult").hidden = v!=="result"; $("vWords").hidden = v!=="words";
+    $("tabWords").setAttribute("aria-selected", String(v==="words")); if(v==="words") renderWords();
     $("tabPlay").setAttribute("aria-selected", String(v==="home"||v==="quiz"||v==="result")); $("tabLog").setAttribute("aria-selected", String(v==="log"));
     $("sharePanel").hidden = v!=="log"; $("backup").hidden = v!=="log"; if(v!=="log") $("backup").open=false;
     if(v==="home"){ renderHome(); renderLists(); } if(v==="log") renderLog();
   }
   $("tabLog").addEventListener("click",()=>show("log"));
+  $("tabWords").addEventListener("click",()=>show("words"));
+
+  // ---------- 単語帳 ----------
+  // 覚えた語は words.json の並び順の番号で保存する（語は末尾に追加するだけなので番号は変わらない）
+  const WKEY="kk-sc-words"; let WORDS=null, WCATS=[], wDeck=[], wI=0;
+  const wLoad=()=>{ const o=readKey(WKEY); return (o&&typeof o==="object")?o:{}; };
+  let wDone=wLoad();
+  const wSave=()=>{ try{ const cur=wLoad(); for(const k in cur) if(wDone[k]===undefined) wDone[k]=cur[k]; localStorage.setItem(WKEY,JSON.stringify(wDone)); }catch(e){} };
+  function wFiltered(){ const c=$("wCat").value, hide=$("wHideDone").checked;
+    return WORDS.map((x,i)=>({...x,i})).filter(x=>(c===""||String(x.c)===c)&&!(hide&&wDone[x.i]===1)); }
+  async function renderWords(){
+    if(!WORDS){ try{ const d=await (await fetch("words.json")).json(); WORDS=d.words; WCATS=d.cats; }catch(e){ $("wList").replaceChildren(el("div","empty","単語帳を読み込めませんでした。")); return; }
+      const sel=$("wCat"); sel.replaceChildren(new Option("全部の分野","")); WCATS.forEach((n,i)=>sel.append(new Option(`${n}（${WORDS.filter(x=>x.c===i).length}）`,String(i)))); }
+    const n=WORDS.length, dn=WORDS.filter((x,i)=>wDone[i]===1).length;
+    $("wSum").replaceChildren(el("b","mono",String(dn)), ` / ${n}語 覚えた`); $("wBar").style.width=(n?dn/n*100:0)+"%";
+    const rev=$("wRev").checked, box=$("wList"); box.replaceChildren();
+    const L=wFiltered(); if(!L.length){ box.append(el("div","empty","表示する語がありません。")); return; }
+    let lastC=-1;
+    L.forEach(x=>{ if($("wCat").value===""&&x.c!==lastC){ lastC=x.c; box.append(el("div","wcat",WCATS[x.c])); }
+      const row=el("div","wrow"+(wDone[x.i]===1?" done":""));
+      const b=el("button","wmain"); b.type="button"; b.append(el("span","wq",rev?x.d:x.w), el("span","wa",rev?x.w:x.d));
+      b.addEventListener("click",()=>row.classList.toggle("open"));
+      const ck=el("button","wck",wDone[x.i]===1?"✓":"○"); ck.type="button"; ck.title="覚えた／まだ"; ck.setAttribute("aria-pressed",String(wDone[x.i]===1));
+      ck.addEventListener("click",()=>{ wDone[x.i]=wDone[x.i]===1?0:1; wSave(); renderWords(); });
+      row.append(b,ck); box.append(row); });
+  }
+  ["wCat","wHideDone","wRev"].forEach(id=>$(id).addEventListener("change",()=>{ wEnd(); renderWords(); }));
+  function wShow(){ if(wI>=wDeck.length){ wEnd(); renderWords(); return; } const x=wDeck[wI], rev=$("wRev").checked;
+    $("wPos").textContent=`${wI+1} / ${wDeck.length}　${WCATS[x.c]}`; $("wQ").textContent=rev?x.d:x.w; $("wA").textContent=rev?x.w:x.d; $("wA").hidden=true; $("wHint").hidden=false; }
+  function wEnd(){ $("wCard").hidden=true; $("wList").hidden=false; $("wNote").hidden=false; }
+  $("wStart").addEventListener("click",()=>{ if(!WORDS) return; wDeck=shuffle(wFiltered()); if(!wDeck.length) return; wI=0; $("wCard").hidden=false; $("wList").hidden=true; $("wNote").hidden=true; wShow(); });
+  $("wFace").addEventListener("click",()=>{ $("wA").hidden=!$("wA").hidden; $("wHint").hidden=true; });
+  $("wYes").addEventListener("click",()=>{ wDone[wDeck[wI].i]=1; wSave(); wI++; wShow(); });
+  $("wNo").addEventListener("click",()=>{ wDone[wDeck[wI].i]=0; wSave(); wI++; wShow(); });
+  $("wEnd").addEventListener("click",()=>{ wEnd(); renderWords(); });
+  // 引き継ぎリンク用：覚えた語をビット列にする／取り込む（どちらかで覚えた語は覚えたままにする）
+  function wPack(){ const ids=Object.keys(wDone).filter(k=>wDone[k]===1).map(Number); if(!ids.length) return ""; const u=new Uint8Array(Math.floor(Math.max(...ids)/8)+1); ids.forEach(i=>u[i>>3]|=1<<(i&7)); return ".W"+u8b64(u); }
+  function wUnpack(text){ const m=String(text||"").match(/\.W([A-Za-z0-9_-]+)/); if(!m) return 0; let add=0;
+    try{ const u=b64u8(m[1]); if(u.length>512) return 0; for(let i=0;i<u.length*8;i++) if(u[i>>3]&(1<<(i&7)) && wDone[i]!==1){ wDone[i]=1; add++; } if(add) wSave(); }catch(e){} return add; }
   $("logWrongOnly").addEventListener("change",renderLog);
 
   $("tabPlay").addEventListener("click",()=>show(Q&&!$("vQuiz").hidden?"quiz":"home"));
@@ -992,7 +1066,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     let since=0; if(!all){ try{ since=+localStorage.getItem(SENTKEY)||0; }catch(e){} }
     const E=encodeRec(since); if(!E.cnt) return E;
     let body; try{ body="2"+u8b64(await zip(E.bytes,"deflate-raw")); }catch(e){ body="2u"+u8b64(E.bytes); }
-    return {...E, url:location.origin+location.pathname+"#sync="+body};
+    return {...E, url:location.origin+location.pathname+"#sync="+body+wPack()};
   }
   async function readCode(text){
     const t=String(text||"").replace(/\s+/g,"");
@@ -1018,14 +1092,14 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   $("tcGo").addEventListener("click",async()=>{
     let inc=null; try{ inc=await readCode($("tcIn").value); }catch(e){ tcMsg("リンクが途中で切れているようです。もう一度コピーして貼り付けてください。",true,"rcMsg"); return; }
     if(!inc){ tcMsg("リンクが見つかりません。作ったリンクをそのまま貼り付けてください。",true,"rcMsg"); return; }
-    const r=mergeRec(inc); $("tcIn").value="";
+    wUnpack($("tcIn").value); const r=mergeRec(inc); $("tcIn").value="";
     tcMsg(r.add?`✓ 取り込みました（新しい解答 ${r.add}件、重複は除外）`:"新しい記録はありませんでした（すべて取り込み済み）",false,"rcMsg");
   });
   // リンクから開いたときは、記録を取り込んでからURLを元に戻す
   async function importFromHash(){
     if(!/^#sync=/.test(location.hash)) return;
     const h=location.hash; history.replaceState(null,"",location.pathname);
-    try{ const inc=await readCode(h); const r=mergeRec(inc||{});
+    try{ const inc=await readCode(h); wUnpack(h); const r=mergeRec(inc||{});
       setStatus(r.add?`✓ 別の端末の記録を取り込みました（新しい解答 ${r.add}件、重複は除外）。`:"別の端末の記録はすべて取り込み済みでした。"); }
     catch(e){ setStatus("リンクが途中で切れていて、記録を取り込めませんでした。リンクをもう一度作って送ってください。"); }
     setTimeout(()=>setStatus(""),10000);
