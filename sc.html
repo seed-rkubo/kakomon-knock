@@ -447,7 +447,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     <div id="wCard" hidden>
       <div class="muted small mono" id="wPos"></div>
       <button class="wface" id="wFace" type="button"><span class="wq" id="wQ"></span><span class="wa" id="wA" hidden></span><span class="muted small" id="wHint">タップで答えを表示</span></button>
-      <div class="resactions"><button class="btn ghost" id="wNo" type="button">まだ</button><button class="btn" id="wYes" type="button">覚えた</button><button class="linkbtn" id="wEnd" type="button">一覧に戻る</button></div>
+      <div class="resactions"><button class="btn ghost" id="wBack" type="button">1つ戻る</button><button class="btn" id="wYes" type="button">覚えた</button><button class="linkbtn" id="wEnd" type="button">一覧に戻る</button></div>
     </div>
     <p class="muted small" id="wNote" style="margin:0 0 8px">行をタップすると答えが出ます。✓ を押すと「覚えた」になります。</p>
     <div id="wList"></div>
@@ -944,12 +944,12 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   }
   ["wCat","wHideDone","wRev"].forEach(id=>$(id).addEventListener("change",()=>{ wEnd(); renderWords(); }));
   function wShow(){ if(wI>=wDeck.length){ wEnd(); renderWords(); return; } const x=wDeck[wI], rev=$("wRev").checked;
-    $("wPos").textContent=`${wI+1} / ${wDeck.length}　${WCATS[x.c]}`; $("wQ").textContent=rev?x.d:x.w; $("wA").textContent=rev?x.w:x.d; $("wA").hidden=true; $("wHint").hidden=false; }
+    $("wPos").textContent=`${wI+1} / ${wDeck.length}　${WCATS[x.c]}`; $("wQ").textContent=rev?x.d:x.w; $("wA").textContent=rev?x.w:x.d; $("wA").hidden=true; $("wHint").textContent="タップで答えを表示"; $("wBack").disabled=wI===0; }
   function wEnd(){ $("wCard").hidden=true; $("wList").hidden=false; $("wNote").hidden=false; }
   $("wStart").addEventListener("click",()=>{ if(!WORDS) return; wDeck=shuffle(wFiltered()); if(!wDeck.length) return; wI=0; $("wCard").hidden=false; $("wList").hidden=true; $("wNote").hidden=true; wShow(); });
-  $("wFace").addEventListener("click",()=>{ $("wA").hidden=!$("wA").hidden; $("wHint").hidden=true; });
+  $("wFace").addEventListener("click",()=>{ if($("wA").hidden){ $("wA").hidden=false; $("wHint").textContent="もう一度タップで次へ"; } else { wI++; wShow(); } });
   $("wYes").addEventListener("click",()=>{ wDone[wDeck[wI].i]=1; wSave(); wI++; wShow(); });
-  $("wNo").addEventListener("click",()=>{ wDone[wDeck[wI].i]=0; wSave(); wI++; wShow(); });
+  $("wBack").addEventListener("click",()=>{ if(wI>0){ wI--; wShow(); } });
   $("wEnd").addEventListener("click",()=>{ wEnd(); renderWords(); });
   // 引き継ぎリンク用：覚えた語をビット列にする／取り込む（どちらかで覚えた語は覚えたままにする）
   function wPack(){ const ids=Object.keys(wDone).filter(k=>wDone[k]===1).map(Number); if(!ids.length) return ""; const u=new Uint8Array(Math.floor(Math.max(...ids)/8)+1); ids.forEach(i=>u[i>>3]|=1<<(i&7)); return ".W"+u8b64(u); }
