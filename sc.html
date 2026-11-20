@@ -108,6 +108,19 @@ td.n{font-family:var(--f-mono);text-align:right}
 .wpch .btn{width:100%}
 #wpFb{min-height:1.6em;margin:8px 0;line-height:1.6;white-space:pre-line}
 .wpres td{padding:4px 6px;border-bottom:1px solid var(--line)}
+.wxrow{margin:-2px 0 8px}
+.wxbtn{font-size:13px;padding:4px 0}
+.wx{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:6px 0 4px;font-size:14px;line-height:1.8;text-align:left}
+.wx h4{font-size:14px;margin:12px 0 4px}
+.wx p{margin:4px 0}
+.wx ul{margin:4px 0;padding-left:1.3em}
+.wx li{margin:2px 0}
+.wx pre{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--f-mono);font-size:12.5px;background:var(--sunk);border-radius:8px;padding:8px 10px;margin:6px 0}
+.wx table{min-width:0;width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px;margin:6px 0}
+.wx th,.wx td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+.wx th{font-size:12px;color:var(--muted)}
+.wx th:first-child{width:34%}
+#wList .wxrow{padding:0 4px}
 .wcat{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:14px 0 6px}
 .wrow{display:flex;align-items:stretch;gap:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-bottom:6px}
 .wrow.done{background:var(--sunk);border-color:transparent}
@@ -478,14 +491,15 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
       <div class="muted small mono" id="wwPos"></div>
       <div class="wwq"><b id="wwName"></b><span class="muted small" id="wwAsk"></span></div>
       <textarea id="wwIn" rows="4" placeholder="何も見ずに書いてみる（書かずに答えを見てもよい）"></textarea>
-      <div class="resactions" id="wwAct1"><button class="btn" id="wwShow" type="button">答えを見る</button><button class="linkbtn" id="wwEnd" type="button">一覧に戻る</button></div>
+      <div class="resactions" id="wwAct1"><button class="btn" id="wwShow" type="button">答えを見る</button></div>
       <div id="wwAns" hidden>
-        <div class="wwbox"><div class="muted small">模範</div><div class="wwmodel" id="wwModel"></div></div>
+        <div class="wwbox"><div class="muted small">模範</div><div class="wwmodel" id="wwModel"></div><div id="wwX" class="wxrow"></div></div>
         <div class="wwbox" id="wwMineBox"><div class="muted small">自分の答え</div><div class="wwmine" id="wwMine"></div></div>
         <div class="muted small" style="margin:8px 0 4px">自分で採点：書けたか</div>
         <div class="wgrade"><button class="btn" id="wwG2" type="button">○ 書けた</button><button class="btn ghost" id="wwG1" type="button">△ 一部</button><button class="btn ghost" id="wwG0" type="button">× 書けない</button></div>
         <p class="muted small" style="margin:6px 0 0">○は次の復習が3日後→7日後→14日後…と延び、△は翌日、×はこの回の最後と翌日にもう一度出ます。</p>
       </div>
+      <div style="margin-top:10px"><button class="linkbtn" id="wwEnd" type="button">一覧に戻る</button></div>
     </div>
     <div id="wPortBox" hidden>
       <div class="muted small mono" id="wpPos"></div>
@@ -499,6 +513,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     <div id="wCard" hidden>
       <div class="muted small mono" id="wPos"></div>
       <button class="wface" id="wFace" type="button"><span class="wq" id="wQ"></span><span class="wa" id="wA" hidden></span><span class="muted small" id="wHint">タップで答えを表示</span></button>
+      <div id="wCardX" class="wxrow"></div>
       <div class="resactions"><button class="btn ghost" id="wBack" type="button">1つ戻る</button><button class="btn" id="wYes" type="button">覚えた</button><button class="linkbtn" id="wEnd" type="button">一覧に戻る</button></div>
     </div>
     <p class="muted small" id="wNote" style="margin:0 0 8px">過去問によく出る順に並んでいます（数字は、SC の過去問1,045問のうち、その用語が問題や選択肢に出てきた問題の数）。行をタップすると答えが出ます。✓ を押すと「覚えた」になります。</p>
@@ -978,6 +993,20 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
   const wSave=()=>{ try{ const cur=wLoad(); for(const k in cur) if(wDone[k]===undefined) wDone[k]=cur[k]; localStorage.setItem(WKEY,JSON.stringify(wDone)); }catch(e){} };
   function wFiltered(){ const c=$("wCat").value, hide=$("wHideDone").checked;
     return WORDS.map((x,i)=>({...x,i})).filter(x=>(c===""||String(x.c)===c)&&!(hide&&wDone[x.i]===1)).sort((a,b)=>a.c-b.c||(b.n||0)-(a.n||0)||a.i-b.i); }
+  // 「詳しく」の本文：## 見出し / - 箇条書き / |a|b| 表 / > コード / それ以外は段落（すべて文字として表示）
+  function xRender(t){ const box=el("div","wx"); let ul=null, tb=null, pre=null;
+    String(t||"").split("\n").forEach(line=>{ const L=line.trim();
+      if(!L.startsWith("- ")) ul=null; if(!L.startsWith("|")) tb=null; if(!L.startsWith("> ")) pre=null;
+      if(!L) return;
+      if(L.startsWith("## ")) box.append(el("h4",null,L.slice(3)));
+      else if(L.startsWith("- ")){ if(!ul){ ul=el("ul"); box.append(ul); } ul.append(el("li",null,L.slice(2))); }
+      else if(L.startsWith("|")){ const cells=L.replace(/^\||\|$/g,"").split("|"); if(!tb){ tb=el("table"); box.append(tb); const tr=el("tr"); cells.forEach(c=>tr.append(el("th",null,c.trim()))); tb.append(tr); } else { const tr=el("tr"); cells.forEach(c=>tr.append(el("td",null,c.trim()))); tb.append(tr); } }
+      else if(L.startsWith("> ")){ if(!pre){ pre=el("pre"); box.append(pre); pre.textContent=L.slice(2); } else pre.textContent+="\n"+L.slice(2); }
+      else box.append(el("p",null,L)); });
+    return box; }
+  function xButton(x,host){ if(!x.x) return null; const b=el("button","linkbtn wxbtn","詳しく ▼"); b.type="button";
+    b.addEventListener("click",e=>{ e.stopPropagation(); const cur=host.querySelector(":scope > .wx"); if(cur){ cur.remove(); b.textContent="詳しく ▼"; return; } host.append(xRender(x.x)); b.textContent="閉じる ▲"; });
+    return b; }
   async function renderWords(){
     if(!WORDS){ try{ const d=await (await fetch("prio.json")).json(); WORDS=d.words; WCATS=d.cats; WPORTS=d.ports||[]; WASK=d.ask||[]; }catch(e){ $("wList").replaceChildren(el("div","empty","リストを読み込めませんでした。")); return; }
       const sel=$("wCat"); sel.replaceChildren(new Option("全部の分野","")); WCATS.forEach((n,i)=>sel.append(new Option(`${n}（${WORDS.filter(x=>x.c===i).length}）`,String(i)))); }
@@ -995,14 +1024,15 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
       b.addEventListener("click",()=>row.classList.toggle("open"));
       const ck=el("button","wck",wDone[x.i]===1?"✓":"○"); ck.type="button"; ck.title="覚えた／まだ"; ck.setAttribute("aria-pressed",String(wDone[x.i]===1));
       ck.addEventListener("click",()=>{ wDone[x.i]=wDone[x.i]===1?0:1; wSave(); renderWords(); });
-      row.append(b,ck); box.append(row); });
+      row.append(b,ck); box.append(row);
+      if(x.x){ const xb=el("div","wxrow"); const btn=xButton(x,xb); xb.prepend(btn); xb.hidden=!row.classList.contains("open"); box.append(xb); b.addEventListener("click",()=>{ xb.hidden=!row.classList.contains("open"); }); } });
   }
   ["wCat","wHideDone","wRev","wMix"].forEach(id=>$(id).addEventListener("change",()=>{ wEnd(); renderWords(); }));
   function wShow(){ if(wI>=wDeck.length){ wEnd(); renderWords(); return; } const x=wDeck[wI], rev=$("wRev").checked;
-    $("wPos").textContent=`${wI+1} / ${wDeck.length}　${WCATS[x.c]}${x.n?`　過去問 ${x.n}問に登場`:""}`; $("wQ").textContent=rev?x.d:x.w; $("wA").textContent=rev?x.w:x.d; $("wA").hidden=true; $("wHint").textContent="タップで答えを表示"; $("wBack").disabled=wI===0; }
+    $("wPos").textContent=`${wI+1} / ${wDeck.length}　${WCATS[x.c]}${x.n?`　過去問 ${x.n}問に登場`:""}`; $("wQ").textContent=rev?x.d:x.w; $("wA").textContent=rev?x.w:x.d; $("wA").hidden=true; $("wCardX").replaceChildren(); $("wHint").textContent="タップで答えを表示"; $("wBack").disabled=wI===0; }
   function wEnd(){ ["wCard","wWriteBox","wPortBox"].forEach(id=>$(id).hidden=true); $("wList").hidden=false; $("wNote").hidden=false; }
   $("wStart").addEventListener("click",()=>{ if(!WORDS) return; wDeck=$("wMix").checked?shuffle(wFiltered()):wFiltered(); if(!wDeck.length) return; wI=0; modeOn("wCard"); wShow(); });
-  $("wFace").addEventListener("click",()=>{ if($("wA").hidden){ $("wA").hidden=false; $("wHint").textContent="もう一度タップで次へ"; } else { wI++; wShow(); } });
+  $("wFace").addEventListener("click",()=>{ if($("wA").hidden){ $("wA").hidden=false; $("wHint").textContent="もう一度タップで次へ"; const x=wDeck[wI]; const h=$("wCardX"); h.replaceChildren(); if(x.x&&!$("wRev").checked){ h.append(xButton(x,h)); } } else { wI++; wShow(); } });
   $("wYes").addEventListener("click",()=>{ wDone[wDeck[wI].i]=1; wSave(); wI++; wShow(); });
   $("wBack").addEventListener("click",()=>{ if(wI>0){ wI--; wShow(); } });
   $("wEnd").addEventListener("click",()=>{ wEnd(); renderWords(); });
@@ -1023,7 +1053,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
     $("wwPos").textContent=`${wwI+1} / ${ww.length}　${WCATS[x.c]}`; $("wwName").textContent=x.w;
     $("wwAsk").textContent=`${(WASK[x.c]||"要点")}を書く`; $("wwIn").value=""; $("wwAns").hidden=true; $("wwAct1").hidden=false; $("wwIn").hidden=false; }
   $("wwShow").addEventListener("click",()=>{ const x=ww[wwI], mine=$("wwIn").value.trim();
-    $("wwModel").textContent=x.d; $("wwMine").textContent=mine; $("wwMineBox").hidden=!mine; $("wwIn").hidden=true; $("wwAct1").hidden=true; $("wwAns").hidden=false; });
+    $("wwModel").textContent=x.d; const h=$("wwX"); h.replaceChildren(); if(x.x) h.append(xButton(x,h)); $("wwMine").textContent=mine; $("wwMineBox").hidden=!mine; $("wwIn").hidden=true; $("wwAct1").hidden=true; $("wwAns").hidden=false; });
   function wwGrade(g){ const x=ww[wwI], r=wSR[x.i]||[0,0,0], t=today();
     if(g===2){ r[0]=Math.min(r[0]+1,SRINT.length-1); r[1]=t+SRINT[r[0]]; if(r[0]>=3) wDone[x.i]=1; }
     else if(g===1){ r[0]=0; r[1]=t+1; } else { r[0]=0; r[1]=t+1; if(!wwRetry.has(x.i)){ wwRetry.add(x.i); ww.push(x); } }
