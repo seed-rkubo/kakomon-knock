@@ -85,6 +85,17 @@ td.n{font-family:var(--f-mono);text-align:right}
 .wctl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:12px;font-size:13px}
 .wctl select{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
 .wctl label{display:inline-flex;gap:6px;align-items:center;color:var(--muted)}
+.wports{margin:4px 0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:8px 10px}
+.wports summary{font-weight:700;cursor:pointer;padding:4px 0}
+.wports table{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse;font-size:13px;margin-top:6px}
+.wports th:nth-child(1){width:27%}.wports th:nth-child(2){width:29%}
+.wports td{overflow-wrap:anywhere}
+.wports th{text-align:left;font-size:11.5px;color:var(--muted);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line)}
+.wports td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+.wports td.pn b{display:block}
+.wports td.pn span{display:block;font-size:11.5px;line-height:1.4}
+.wports td.mono{font-family:var(--f-mono);font-weight:700;white-space:nowrap}
+.wports tr:last-child td{border-bottom:0}
 .wcat{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:14px 0 6px}
 .wrow{display:flex;align-items:stretch;gap:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-bottom:6px}
 .wrow.done{background:var(--sunk);border-color:transparent}
@@ -922,21 +933,24 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15
 
   // ---------- 優先リスト ----------
   // 覚えた項目は prio.json の並び順の番号で保存する（項目は末尾に追加するだけなので番号は変わらない）
-  const WKEY="kk-sc-prio"; let WORDS=null, WCATS=[], wDeck=[], wI=0;
+  const WKEY="kk-sc-prio"; let WORDS=null, WCATS=[], WPORTS=[], wDeck=[], wI=0;
   const wLoad=()=>{ const o=readKey(WKEY); return (o&&typeof o==="object")?o:{}; };
   let wDone=wLoad();
   const wSave=()=>{ try{ const cur=wLoad(); for(const k in cur) if(wDone[k]===undefined) wDone[k]=cur[k]; localStorage.setItem(WKEY,JSON.stringify(wDone)); }catch(e){} };
   function wFiltered(){ const c=$("wCat").value, hide=$("wHideDone").checked;
     return WORDS.map((x,i)=>({...x,i})).filter(x=>(c===""||String(x.c)===c)&&!(hide&&wDone[x.i]===1)).sort((a,b)=>a.c-b.c||(b.n||0)-(a.n||0)||a.i-b.i); }
   async function renderWords(){
-    if(!WORDS){ try{ const d=await (await fetch("prio.json")).json(); WORDS=d.words; WCATS=d.cats; }catch(e){ $("wList").replaceChildren(el("div","empty","リストを読み込めませんでした。")); return; }
+    if(!WORDS){ try{ const d=await (await fetch("prio.json")).json(); WORDS=d.words; WCATS=d.cats; WPORTS=d.ports||[]; }catch(e){ $("wList").replaceChildren(el("div","empty","リストを読み込めませんでした。")); return; }
       const sel=$("wCat"); sel.replaceChildren(new Option("全部の分野","")); WCATS.forEach((n,i)=>sel.append(new Option(`${n}（${WORDS.filter(x=>x.c===i).length}）`,String(i)))); }
     const n=WORDS.length, dn=WORDS.filter((x,i)=>wDone[i]===1).length;
     $("wSum").replaceChildren(el("b","mono",String(dn)), ` / ${n}項目 覚えた`); $("wBar").style.width=(n?dn/n*100:0)+"%";
     const rev=$("wRev").checked, box=$("wList"); box.replaceChildren();
     const L=wFiltered(); if(!L.length){ box.append(el("div","empty","表示する項目がありません。")); return; }
     let lastC=-1;
-    L.forEach(x=>{ if($("wCat").value===""&&x.c!==lastC){ lastC=x.c; box.append(el("div","wcat",WCATS[x.c])); }
+    const portTable=()=>{ if(!WPORTS.length||rev) return; const d=el("details","wports"); d.open=true; d.append(el("summary",null,"よく出るポート番号（番号順）"));
+      const t=el("table"); const hr=el("tr"); ["番号","プロトコル","用途"].forEach(h=>hr.append(el("th",null,h))); t.append(hr);
+      WPORTS.forEach(r=>{ const tr=el("tr"), nm=el("td","pn"); nm.append(el("b",null,r[1]),el("span","muted small",r[2])); tr.append(el("td","mono",r[0].replace(/ \/ /g,"/")),nm,el("td",null,r[3])); t.append(tr); }); d.append(t); box.append(d); };
+    L.forEach(x=>{ if(x.c!==lastC){ lastC=x.c; if($("wCat").value==="") box.append(el("div","wcat",WCATS[x.c])); if(/ポート/.test(WCATS[x.c])) portTable(); }
       const row=el("div","wrow"+(wDone[x.i]===1?" done":""));
       const b=el("button","wmain"); b.type="button"; const hq=el("span","wq",rev?x.d:x.w); if(x.n&&!rev) hq.append(el("span","wn",String(x.n))); b.append(hq, el("span","wa",rev?x.w:x.d));
       b.addEventListener("click",()=>row.classList.toggle("open"));
